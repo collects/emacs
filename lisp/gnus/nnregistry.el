@@ -1,9 +1,8 @@
-;;; nnregistry.el --- access to articles via Gnus' message-id registry
-;;; -*- coding: utf-8 -*-
+;;; nnregistry.el --- access to articles via Gnus' message-id registry  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2010-2017 Free Software Foundation, Inc.
+;; Copyright (C) 2010-2023 Free Software Foundation, Inc.
 
-;; Authors: Ludovic Courtès <ludo@gnu.org>
+;; Author: Ludovic Courtès <ludo@gnu.org>
 ;; Keywords: news, mail
 
 ;; This file is part of GNU Emacs.
@@ -19,7 +18,7 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -36,21 +35,21 @@
 
 (nnoo-declare nnregistry)
 
-(deffoo nnregistry-server-opened (server)
-  gnus-registry-enabled)
+(deffoo nnregistry-server-opened (_server)
+  gnus-registry-db)
 
-(deffoo nnregistry-close-server (server)
+(deffoo nnregistry-close-server (_server &optional _defs)
   t)
 
-(deffoo nnregistry-status-message (server)
+(deffoo nnregistry-status-message (_server)
   nil)
 
-(deffoo nnregistry-open-server (server &optional defs)
-  gnus-registry-enabled)
+(deffoo nnregistry-open-server (_server &optional _defs)
+  gnus-registry-db)
 
 (defvar nnregistry-within-nnregistry nil)
 
-(deffoo nnregistry-request-article (id &optional group server buffer)
+(deffoo nnregistry-request-article (id &optional _group _server buffer)
   (and (not nnregistry-within-nnregistry)
        (let* ((nnregistry-within-nnregistry t)
 	      (group (nth 0 (gnus-registry-get-id-key id 'group)))

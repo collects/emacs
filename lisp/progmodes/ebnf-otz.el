@@ -1,9 +1,8 @@
-;;; ebnf-otz.el --- syntactic chart OpTimiZer
+;;; ebnf-otz.el --- syntactic chart OpTimiZer  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 1999-2017 Free Software Foundation, Inc.
+;; Copyright (C) 1999-2023 Free Software Foundation, Inc.
 
-;; Author: Vinicius Jose Latorre <viniciusjl@ig.com.br>
-;; Maintainer: Vinicius Jose Latorre <viniciusjl@ig.com.br>
+;; Author: Vinicius Jose Latorre <viniciusjl.gnu@gmail.com>
 ;; Keywords: wp, ebnf, PostScript
 ;; Old-Version: 1.0
 ;; Package: ebnf2ps
@@ -21,7 +20,7 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -567,7 +566,7 @@
     ;; determine suffix length
     (while (and (> isuf 0) (setq tail (cdr tail)))
       (let* ((cur head)
-	     (tlis (nreverse
+	     (tlis (reverse
 		    (if (eq (ebnf-node-kind (car tail)) 'ebnf-generate-sequence)
 			(ebnf-node-list (car tail))
 		      (list (car tail)))))
@@ -578,7 +577,6 @@
 	  (setq cur  (cdr cur)
 		this (cdr this)
 		i    (1+ i)))
-	(nreverse tlis)
 	(setq isuf (min isuf i))))
     (setq head (nreverse head))
     (if (or (zerop isuf) (> isuf len))

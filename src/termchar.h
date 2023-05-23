@@ -1,5 +1,5 @@
 /* Flags and parameters describing terminal's characteristics.
-   Copyright (C) 1985-1986, 2001-2017 Free Software Foundation, Inc.
+   Copyright (C) 1985-1986, 2001-2023 Free Software Foundation, Inc.
 
 This file is part of GNU Emacs.
 
@@ -14,7 +14,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
+along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.  */
 
 #ifndef EMACS_TERMCHAR_H
 #define EMACS_TERMCHAR_H
@@ -52,6 +52,11 @@ struct tty_display_info
                                    NULL if the terminal is suspended. */
   FILE *output;                 /* The stream to be used for terminal output.
                                    NULL if the terminal is suspended. */
+
+  /* Size of output buffer.  A value of zero means use the default of
+     BUFIZE.  If non-zero, also minimize writes to the tty by avoiding
+     calls to flush.  */
+  size_t output_buffer_size;
 
   FILE *termscript;             /* If nonzero, send all terminal output
                                    characters to this stream also.  */
@@ -136,6 +141,8 @@ struct tty_display_info
   const char *TS_enter_reverse_mode; /* "mr" -- enter reverse video mode.  */
   const char *TS_exit_underline_mode; /* "us" -- start underlining.  */
   const char *TS_enter_underline_mode; /* "ue" -- end underlining.  */
+  const char *TS_enter_strike_through_mode; /* "smxx" -- turn on strike-through
+					       mode.  */
 
   /* "as"/"ae" -- start/end alternate character set.  Not really
      supported, yet.  */
@@ -148,10 +155,6 @@ struct tty_display_info
   int TN_no_color_video;
 
   int TN_max_colors;            /* "Co" -- number of colors.  */
-
-  /* "pa" -- max. number of color pairs on screen.  Not handled yet.
-     Could be a problem if not equal to TN_max_colors * TN_max_colors.  */
-  int TN_max_pairs;
 
   /* "op" -- SVr4 set default pair to its original value.  */
   const char *TS_orig_pair;
@@ -234,5 +237,9 @@ extern struct tty_display_info *tty_list;
    : (emacs_abort (), (struct tty_display_info *) 0))
 
 #define CURTTY() FRAME_TTY (SELECTED_FRAME())
+
+struct input_event;
+extern Lisp_Object tty_handle_tab_bar_click (struct frame *, int, int, bool,
+					     struct input_event *);
 
 #endif /* EMACS_TERMCHAR_H */

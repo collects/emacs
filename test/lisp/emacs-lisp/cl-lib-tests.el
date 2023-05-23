@@ -1,21 +1,21 @@
-;;; cl-lib.el --- tests for emacs-lisp/cl-lib.el  -*- lexical-binding:t -*-
+;;; cl-lib-tests.el --- tests for emacs-lisp/cl-lib.el  -*- lexical-binding:t -*-
 
-;; Copyright (C) 2013-2017 Free Software Foundation, Inc.
+;; Copyright (C) 2013-2023 Free Software Foundation, Inc.
 
 ;; This file is part of GNU Emacs.
 
-;; This program is free software: you can redistribute it and/or
-;; modify it under the terms of the GNU General Public License as
-;; published by the Free Software Foundation, either version 3 of the
-;; License, or (at your option) any later version.
-;;
-;; This program is distributed in the hope that it will be useful, but
-;; WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-;; General Public License for more details.
-;;
+;; GNU Emacs is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; GNU Emacs is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
 ;; You should have received a copy of the GNU General Public License
-;; along with this program.  If not, see `http://www.gnu.org/licenses/'.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -195,14 +195,15 @@
   (should (eql (cl-mismatch "Aa" "aA") 0))
   (should (eql (cl-mismatch '(a b c) '(a b d)) 2)))
 
-(ert-deftest cl-lib-test-loop ()
-  (should (eql (cl-loop with (a b c) = '(1 2 3) return (+ a b c)) 6)))
-
 (ert-deftest cl-lib-keyword-names-versus-values ()
   (should (equal
            (funcall (cl-function (lambda (&key a b) (list a b)))
                     :b :a :a 42)
            '(42 :a))))
+
+(ert-deftest cl-lib-empty-keyargs ()
+  (should-error (funcall (cl-function (lambda (&key) 1))
+                         :b 1)))
 
 (cl-defstruct (mystruct
                (:constructor cl-lib--con-1 (&aux (abc 1)))
@@ -219,7 +220,7 @@
     (should-error (cl-struct-slot-offset 'mystruct 'marypoppins))
     (should (pcase (cl-struct-slot-info 'mystruct)
               (`((cl-tag-slot) (abc 5 :readonly t)
-                 (def . ,(or `nil `(nil))))
+                 (def . ,(or 'nil '(nil))))
                t)))))
 (ert-deftest cl-lib-struct-constructors ()
   (should (string-match "\\`Constructor docstring."
@@ -240,6 +241,22 @@
   (let ((side-effect 0))
     (should (= (cl-the integer (cl-incf side-effect)) 1))
     (should (= side-effect 1))))
+
+(ert-deftest cl-lib-test-incf ()
+  (let ((var 0))
+    (should (= (cl-incf var) 1))
+    (should (= var 1)))
+  (let ((alist))
+    (should (= (cl-incf (alist-get 'a alist 0)) 1))
+    (should (= (alist-get 'a alist 0) 1))))
+
+(ert-deftest cl-lib-test-decf ()
+  (let ((var 1))
+    (should (= (cl-decf var) 0))
+    (should (= var 0)))
+  (let ((alist))
+    (should (= (cl-decf (alist-get 'a alist 0)) -1))
+    (should (= (alist-get 'a alist 0) -1))))
 
 (ert-deftest cl-lib-test-plusp ()
   (should-not (cl-plusp -1.0e+INF))
@@ -336,13 +353,6 @@
   (should (= 5 (cl-fifth '(1 2 3 4 5 6))))
   (should-error (cl-fifth "12345") :type 'wrong-type-argument))
 
-(ert-deftest cl-lib-test-fifth ()
-  (should (null (cl-fifth '())))
-  (should (null (cl-fifth '(1 2 3 4))))
-  (should (= 5 (cl-fifth '(1 2 3 4 5))))
-  (should (= 5 (cl-fifth '(1 2 3 4 5 6))))
-  (should-error (cl-fifth "12345") :type 'wrong-type-argument))
-
 (ert-deftest cl-lib-test-sixth ()
   (should (null (cl-sixth '())))
   (should (null (cl-sixth '(1 2 3 4 5))))
@@ -394,27 +404,11 @@
 (ert-deftest cl-lib-nth-value-test-multiple-values ()
   "While CL multiple values are an alias to list, these won't work."
   :expected-result :failed
-  (should (eq (cl-nth-value 0 '(2 3)) '(2 3)))
+  (should (equal (cl-nth-value 0 '(2 3)) '(2 3)))
   (should (= (cl-nth-value 0 1) 1))
   (should (null (cl-nth-value 1 1)))
   (should-error (cl-nth-value -1 (cl-values 2 3)) :type 'args-out-of-range)
   (should (string= (cl-nth-value 0 "only lists") "only lists")))
-
-(ert-deftest cl-test-caaar ()
-  (should (null (cl-caaar '())))
-  (should (null (cl-caaar '(() (2)))))
-  (should (null (cl-caaar '((() (2)) (a b)))))
-  (should-error (cl-caaar '(1 2)) :type 'wrong-type-argument)
-  (should-error (cl-caaar '((1 2))) :type 'wrong-type-argument)
-  (should (=  1 (cl-caaar '(((1 2) (3 4))))))
-  (should (null (cl-caaar '((() (3 4)))))))
-
-(ert-deftest cl-test-caadr ()
-  (should (null (cl-caadr '())))
-  (should (null (cl-caadr '(1))))
-  (should-error (cl-caadr '(1 2)) :type 'wrong-type-argument)
-  (should (= 2 (cl-caadr '(1 (2 3)))))
-  (should (equal '((2) (3)) (cl-caadr '((1) (((2) (3))) (4))))))
 
 (ert-deftest cl-test-ldiff ()
   (let ((l '(1 2 3)))
@@ -437,7 +431,8 @@
     (should (eq nums (cdr (cl-adjoin 3 nums))))
     ;; add only when not already there
     (should (eq nums (cl-adjoin 2 nums)))
-    (should (equal '(2 1 (2)) (cl-adjoin 2 '(1 (2)))))
+    (with-suppressed-warnings ((suspicious memql))
+      (should (equal '(2 1 (2)) (cl-adjoin 2 '(1 (2))))))
     ;; default test function is eql
     (should (equal '(1.0 1 2) (cl-adjoin 1.0 nums)))
     ;; own :test function - returns true if match
@@ -480,9 +475,6 @@
   (should (= 239 (cl-parse-integer "zzef" :radix 16 :start 2)))
   (should (= -123 (cl-parse-integer "	-123  "))))
 
-(ert-deftest cl-loop-destructuring-with ()
-  (should (equal (cl-loop with (a b c) = '(1 2 3) return (+ a b c)) 6)))
-
 (ert-deftest cl-flet-test ()
   (should (equal (cl-flet ((f1 (x) x)) (let ((x #'f1)) (funcall x 5))) 5)))
 
@@ -493,4 +485,76 @@
   (should (cl-typep '* 'cl-lib-test-type))
   (should-not (cl-typep 1 'cl-lib-test-type)))
 
-;;; cl-lib.el ends here
+(ert-deftest cl-lib-symbol-macrolet ()
+  ;; bug#26325
+  (should (equal (cl-flet ((f (x) (+ x 5)))
+                   (let ((x 5))
+                     (f (+ x 6))))
+                 ;; Go through `eval', otherwise the macro-expansion
+                 ;; error prevents running the whole test suite :-(
+                 (eval '(cl-symbol-macrolet ((f (+ x 6)))
+                          (cl-flet ((f (x) (+ x 5)))
+                            (let ((x 5))
+                              (f f))))
+                       t))))
+
+(defmacro cl-lib-symbol-macrolet-4+5 ()
+  ;; bug#26068
+  (let* ((sname "x")
+         (s1 (make-symbol sname))
+         (s2 (make-symbol sname)))
+    `(cl-symbol-macrolet ((,s1 4)
+                          (,s2 5))
+       (+ ,s1 ,s2))))
+
+(ert-deftest cl-lib-symbol-macrolet-2 ()
+  (should (equal (cl-lib-symbol-macrolet-4+5) (+ 4 5))))
+
+
+(ert-deftest cl-lib-symbol-macrolet-hide ()
+  ;; bug#26325, bug#26073
+  (should (equal (let ((y 5))
+                   (cl-symbol-macrolet ((x y))
+                     (list x
+                           (let ((x 6)) (list x y))
+                           (cl-letf ((x 6)) (list x y))
+                           (apply (lambda (x) (+ x 1)) (list 8)))))
+                 '(5 (6 5) (6 6) 9))))
+
+(ert-deftest cl-lib-defstruct-record ()
+  (cl-defstruct foo x)
+  (let ((x (make-foo :x 42)))
+    (should (recordp x))
+    (should (eq (type-of x) 'foo))
+    (should (eql (foo-x x) 42))))
+
+(ert-deftest old-struct ()
+  (cl-defstruct foo x)
+  (let ((x (vector 'cl-struct-foo))
+        (saved cl-old-struct-compat-mode))
+    (cl-old-struct-compat-mode -1)
+    (should (eq (type-of x) 'vector))
+
+    (cl-old-struct-compat-mode 1)
+    (defvar cl-struct-foo)
+    (let ((cl-struct-foo (cl--struct-get-class 'foo)))
+      (setf (symbol-function 'cl-struct-foo) :quick-object-witness-check)
+      (should (eq (type-of x) 'foo))
+      (should (eq (type-of (vector 'foo)) 'vector)))
+
+    (cl-old-struct-compat-mode (if saved 1 -1))))
+
+(ert-deftest cl-lib-old-struct ()
+  (let ((saved cl-old-struct-compat-mode))
+    (cl-old-struct-compat-mode -1)
+    (cl-struct-define 'foo "" 'cl-structure-object nil nil nil
+                      'cl-struct-foo-tags 'cl-struct-foo t)
+    (should cl-old-struct-compat-mode)
+    (cl-old-struct-compat-mode (if saved 1 -1))))
+
+(ert-deftest cl-constantly ()
+  (should (equal (mapcar (cl-constantly 3) '(a b c d))
+                 '(3 3 3 3))))
+
+
+;;; cl-lib-tests.el ends here

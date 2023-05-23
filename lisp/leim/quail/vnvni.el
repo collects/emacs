@@ -1,6 +1,6 @@
-;;; vnvni.el --- Quail package for Vietnamese by VNI method
+;;; vnvni.el --- Quail package for Vietnamese by VNI method  -*- lexical-binding: t -*-
 
-;; Copyright (C) 2001-2017 Free Software Foundation, Inc.
+;; Copyright (C) 2001-2023 Free Software Foundation, Inc.
 
 ;; Author:   Werner Lemberg <wl@gnu.org>
 ;;           Nguyen Thai Ngoc Duy <pclouds@gmail.com>
@@ -19,7 +19,7 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -303,3 +303,5 @@ and postfix: E66 -> E6, a55 -> a5, etc.
 ;; Local Variables:
 ;; coding: utf-8
 ;; End:
+
+;;; vnvni.el ends here

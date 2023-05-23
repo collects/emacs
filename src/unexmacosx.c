@@ -1,5 +1,5 @@
 /* Dump Emacs in Mach-O format for use on macOS.
-   Copyright (C) 2001-2017 Free Software Foundation, Inc.
+   Copyright (C) 2001-2023 Free Software Foundation, Inc.
 
 This file is part of GNU Emacs.
 
@@ -14,7 +14,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
+along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.  */
 
 /* Contributed by Andrew Choi (akochoi@mac.com).  */
 
@@ -97,9 +97,9 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #include "unexec.h"
 #include "lisp.h"
+#include "sysstdio.h"
 
 #include <errno.h>
-#include <stdio.h>
 #include <fcntl.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -303,9 +303,9 @@ unexec_error (const char *format, ...)
   va_list ap;
 
   va_start (ap, format);
-  fprintf (stderr, "unexec: ");
+  fputs ("unexec: ", stderr);
   vfprintf (stderr, format, ap);
-  fprintf (stderr, "\n");
+  putc ('\n', stderr);
   va_end (ap);
   exit (1);
 }
@@ -344,31 +344,6 @@ print_region_list (void)
 
   for (r = region_list_head; r; r = r->next)
     print_region (r->address, r->size, r->protection, r->max_protection);
-}
-
-static void
-print_regions (void)
-{
-  task_t target_task = mach_task_self ();
-  vm_address_t address = (vm_address_t) 0;
-  vm_size_t size;
-  struct vm_region_basic_info info;
-  mach_msg_type_number_t info_count = VM_REGION_BASIC_INFO_COUNT;
-  mach_port_t object_name;
-
-  printf ("   address     size prot maxp\n");
-
-  while (vm_region (target_task, &address, &size, VM_REGION_BASIC_INFO,
-		    (vm_region_info_t) &info, &info_count, &object_name)
-	 == KERN_SUCCESS && info_count == VM_REGION_BASIC_INFO_COUNT)
-    {
-      print_region (address, size, info.protection, info.max_protection);
-
-      if (object_name != MACH_PORT_NULL)
-	mach_port_deallocate (target_task, object_name);
-
-      address += size;
-    }
 }
 
 /* Build the list of regions that need to be dumped.  Regions with
@@ -528,22 +503,34 @@ unexec_regions_sort_compare (const void *a, const void *b)
 static void
 unexec_regions_merge (void)
 {
-  int i, n;
-  unexec_region_info r;
-  vm_size_t padsize;
-
   qsort (unexec_regions, num_unexec_regions, sizeof (unexec_regions[0]),
 	 &unexec_regions_sort_compare);
-  n = 0;
-  r = unexec_regions[0];
-  padsize = r.range.address & (pagesize - 1);
-  if (padsize)
+
+  /* Align each region start address to a page boundary.  */
+  for (unexec_region_info *cur = unexec_regions;
+       cur < unexec_regions + num_unexec_regions; cur++)
     {
-      r.range.address -= padsize;
-      r.range.size += padsize;
-      r.filesize += padsize;
+      vm_size_t padsize = cur->range.address & (pagesize - 1);
+      if (padsize)
+	{
+	  cur->range.address -= padsize;
+	  cur->range.size += padsize;
+	  cur->filesize += padsize;
+
+	  unexec_region_info *prev = cur == unexec_regions ? NULL : cur - 1;
+	  if (prev
+	      && prev->range.address + prev->range.size > cur->range.address)
+	    {
+	      prev->range.size = cur->range.address - prev->range.address;
+	      if (prev->filesize > prev->range.size)
+		prev->filesize = prev->range.size;
+	    }
+	}
     }
-  for (i = 1; i < num_unexec_regions; i++)
+
+  int n = 0;
+  unexec_region_info r = unexec_regions[0];
+  for (int i = 1; i < num_unexec_regions; i++)
     {
       if (r.range.address + r.range.size == unexec_regions[i].range.address
 	  && r.range.size - r.filesize < 2 * pagesize)
@@ -555,17 +542,6 @@ unexec_regions_merge (void)
 	{
 	  unexec_regions[n++] = r;
 	  r = unexec_regions[i];
-	  padsize = r.range.address & (pagesize - 1);
-	  if (padsize)
-	    {
-	      if ((unexec_regions[n-1].range.address
-		   + unexec_regions[n-1].range.size) == r.range.address)
-		unexec_regions[n-1].range.size -= padsize;
-
-	      r.range.address -= padsize;
-	      r.range.size += padsize;
-	      r.filesize += padsize;
-	    }
 	}
     }
   unexec_regions[n++] = r;

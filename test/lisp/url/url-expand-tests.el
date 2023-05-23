@@ -1,6 +1,6 @@
-;;; url-expand-tests.el --- Test suite for relative URI/URL resolution.
+;;; url-expand-tests.el --- Test suite for relative URI/URL resolution.  -*- lexical-binding:t -*-
 
-;; Copyright (C) 2012-2017 Free Software Foundation, Inc.
+;; Copyright (C) 2012-2023 Free Software Foundation, Inc.
 
 ;; Author: Alain Schneble <a.s@realize.ch>
 ;; Version: 1.0
@@ -18,7 +18,7 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -99,6 +99,13 @@
   (should (equal (url-expand-file-name "#bar" "http://host/foo") "http://host/foo#bar"))
   (should (equal (url-expand-file-name "foo#bar" "http://host/foobar") "http://host/foo#bar"))
   (should (equal (url-expand-file-name "foo#bar" "http://host/foobar/") "http://host/foobar/foo#bar")))
+
+(ert-deftest url-expand-file-name/relative-resolution-file-url ()
+  "RFC 3986, Section 5.4 Reference Resolution Examples / Section 5.4.1. Normal Examples"
+  (should (equal (url-expand-file-name "bar.html"          "file:///a/b/c/foo.html") "file:///a/b/c/bar.html"))
+  (should (equal (url-expand-file-name "bar.html"          "file:///a/b/c/")         "file:///a/b/c/bar.html"))
+  (should (equal (url-expand-file-name "../d/bar.html"     "file:///a/b/c/")         "file:///a/b/d/bar.html"))
+  (should (equal (url-expand-file-name "../d/bar.html"     "file:///a/b/c/foo.html") "file:///a/b/d/bar.html")))
 
 (provide 'url-expand-tests)
 

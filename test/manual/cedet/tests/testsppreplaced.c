@@ -1,7 +1,7 @@
 /* testsppreplaced.c --- unit test for CPP/SPP Replacement
-   Copyright (C) 2007-2017 Free Software Foundation, Inc.
+   Copyright (C) 2007-2023 Free Software Foundation, Inc.
 
-   Author: Eric M. Ludlam <eric@siege-engine.com>
+   Author: Eric M. Ludlam <zappo@gnu.org>
 
    This file is part of GNU Emacs.
 
@@ -16,7 +16,7 @@
    GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+   along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 /* What the SPP replace file would looklike with MACROS replaced: */
@@ -55,14 +55,14 @@ int myFcn3 (int a, int b);
 /* TEST: Multiple args to a macro. */
 struct ma_struct { int moose; int penguin; int emu; };
 
-/* TEST: Macro w/ args, but no body. */
+/* TEST: Macro with args, but no body. */
 
 /* TEST: Not a macro with args, but close. */
 int not_with_args_fcn (moose)
 {
 }
 
-/* TEST: macro w/ continuation. */
+/* TEST: macro with continuation. */
 int continuation_symbol () { };
 
 /* TEST: macros in a macro - tail processing */

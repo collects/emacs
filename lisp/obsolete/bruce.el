@@ -1,7 +1,7 @@
-;;; bruce.el --- bruce phrase utility for overloading the Communications
+;;; bruce.el --- bruce phrase utility for overloading the Communications  -*- lexical-binding: t; -*-
 ;;; Decency Act snoops, if any.
 
-;; Copyright (C) 1988, 1993, 1997, 2001-2017 Free Software Foundation,
+;; Copyright (C) 1988, 1993, 1997, 2001-2023 Free Software Foundation,
 ;; Inc.
 
 ;; Maintainer: emacs-devel@gnu.org
@@ -22,7 +22,7 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -30,7 +30,7 @@
 ;; Decency Act of 1996. This Act bans "indecent speech", whatever that is,
 ;; from the Internet. For more on the CDA, see Richard Stallman's essay on
 ;; censorship, included in the etc directory of emacs distributions 19.34
-;; and up. See also http://www.eff.org/blueribbon.html.
+;; and up. See also https://www.eff.org/blueribbon.html.
 
 ;; For many years, emacs has included a program called Spook. This program
 ;; adds a series of "keywords" to email just before it goes out. On the
@@ -39,7 +39,7 @@
 ;; reading your meeting schedule notices or other email boring to everyone
 ;; but you and (you hope) the recipient. See below (I left in the original
 ;; writeup when I made this conversion), or the emacs documentation at
-;; ftp://prep.ai.mit.edu/pub/gnu/emacs-manual*.
+;; https://www.gnu.org/software/emacs/manual/.
 
 ;; Bruce is a direct copy of spook, with the word "spook" replaced with
 ;; the word "bruce". Thanks to "esr", whoever he, she or it may be, this
@@ -113,13 +113,11 @@
 
 (defcustom bruce-phrases-file "~/bruce.lines"
   "Keep your favorite phrases here."
-  :type 'file
-  :group 'bruce)
+  :type 'file)
 
 (defcustom bruce-phrase-default-count 15
   "Default number of phrases to insert."
-  :type 'integer
-  :group 'bruce)
+  :type 'integer)
 
 ;;;###autoload
 (defun bruce ()

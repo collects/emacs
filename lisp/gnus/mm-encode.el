@@ -1,6 +1,6 @@
-;;; mm-encode.el --- Functions for encoding MIME things
+;;; mm-encode.el --- Functions for encoding MIME things  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 1998-2017 Free Software Foundation, Inc.
+;; Copyright (C) 1998-2023 Free Software Foundation, Inc.
 
 ;; Author: Lars Magne Ingebrigtsen <larsi@gnus.org>
 ;;	MORIOKA Tomohiko <morioka@jaist.ac.jp>
@@ -17,13 +17,13 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
 ;;; Code:
 
-(eval-when-compile (require 'cl))
+(eval-when-compile (require 'cl-lib))
 (require 'mail-parse)
 (autoload 'mailcap-extension-to-mime "mailcap")
 (autoload 'mm-body-7-or-8 "mm-bodies")
@@ -98,9 +98,12 @@ This variable should never be set directly, but bound before a call to
     boundary))
 
 ;;;###autoload
-(defun mm-default-file-encoding (file)
-  "Return a default encoding for FILE."
-  (if (not (string-match "\\.[^.]+$" file))
+(define-obsolete-function-alias 'mm-default-file-encoding
+  #'mm-default-file-type "28.1") ;Old bad name.
+;;;###autoload
+(defun mm-default-file-type (file)
+  "Return a default content type for FILE."
+  (if (not (string-match "\\.[^.]+\\'" file))
       "application/octet-stream"
     (mailcap-extension-to-mime (match-string 0 file))))
 
@@ -204,7 +207,7 @@ This is either `base64' or `quoted-printable'."
 	(goto-char (point-min))
 	(skip-chars-forward "\x20-\x7f\r\n\t" limit)
 	(while (< (point) limit)
-	  (incf n8bit)
+	  (cl-incf n8bit)
 	  (forward-char 1)
 	  (skip-chars-forward "\x20-\x7f\r\n\t" limit))
 	(if (or (< (* 6 n8bit) (- limit (point-min)))

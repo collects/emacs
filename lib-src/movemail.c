@@ -1,7 +1,7 @@
 /* movemail foo bar -- move file foo to file bar,
    locking file foo the way /bin/mail respects.
 
-Copyright (C) 1986, 1992-1994, 1996, 1999, 2001-2017 Free Software
+Copyright (C) 1986, 1992-1994, 1996, 1999, 2001-2023 Free Software
 Foundation, Inc.
 
 This file is part of GNU Emacs.
@@ -17,7 +17,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
+along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.  */
 
 
 /* Important notice: defining MAIL_USE_FLOCK or MAIL_USE_LOCKF *will
@@ -59,16 +59,20 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/file.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <time.h>
+#include <timespec.h>
 
 #include <getopt.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <string.h>
+
+#include <attribute.h>
+#include <unlocked-io.h>
+
 #include "syswait.h"
 #ifdef MAIL_USE_POP
 #include "pop.h"
@@ -143,7 +147,7 @@ static bool mbx_delimit_end (FILE *);
      || (!defined DISABLE_DIRECT_ACCESS && !defined MAIL_USE_SYSTEM_LOCK))
 /* Like malloc but get fatal error if memory is exhausted.  */
 
-static void *
+static void * ATTRIBUTE_MALLOC
 xmalloc (size_t size)
 {
   void *result = malloc (size);
@@ -268,6 +272,7 @@ main (int argc, char **argv)
 	 You might also wish to verify that your system is one which
 	 uses lock files for this purpose.  Some systems use other methods.  */
 
+      bool lockname_unlinked = false;
       inname_len = strlen (inname);
       lockname = xmalloc (inname_len + sizeof ".lock");
       strcpy (lockname, inname);
@@ -310,15 +315,10 @@ main (int argc, char **argv)
 	     Five minutes should be good enough to cope with crashes
 	     and wedgitude, and long enough to avoid being fooled
 	     by time differences between machines.  */
-	  if (stat (lockname, &st) >= 0)
-	    {
-	      time_t now = time (0);
-	      if (st.st_ctime < now - 300)
-		{
-		  unlink (lockname);
-		  lockname = 0;
-		}
-	    }
+	  if (!lockname_unlinked
+	      && stat (lockname, &st) == 0
+	      && st.st_ctime < time (0) - 300)
+	    lockname_unlinked = unlink (lockname) == 0 || errno == ENOENT;
 	}
 
       delete_lockname = lockname;
@@ -470,7 +470,7 @@ main (int argc, char **argv)
 	     that were set on the file.  Better to just empty the file.  */
 	  if (unlink (inname) < 0 && errno != ENOENT)
 #endif /* MAIL_UNLINK_SPOOL */
-	    creat (inname, 0600);
+	    close (creat (inname, 0600));
 	}
 #endif /* not MAIL_USE_SYSTEM_LOCK */
 
@@ -578,7 +578,7 @@ pfatal_with_name (char *name)
 static void
 pfatal_and_delete (char *name)
 {
-  char *s = strerror (errno);
+  const char *s = strerror (errno);
   unlink (name);
   fatal ("%s for %s", s, name);
 }
@@ -847,7 +847,7 @@ movemail_strftime (char *s, size_t size, char const *format,
 static bool
 mbx_delimit_begin (FILE *mbf)
 {
-  time_t now = time (NULL);
+  time_t now = current_timespec ().tv_sec;
   struct tm *ltime = localtime (&now);
   if (!ltime)
     return false;

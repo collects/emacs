@@ -1,6 +1,6 @@
-;;; loadhist.el --- lisp functions for working with feature groups
+;;; loadhist.el --- lisp functions for working with feature groups  -*- lexical-binding: t -*-
 
-;; Copyright (C) 1995, 1998, 2000-2017 Free Software Foundation, Inc.
+;; Copyright (C) 1995, 1998, 2000-2023 Free Software Foundation, Inc.
 
 ;; Author: Eric S. Raymond <esr@snark.thyrsus.com>
 ;; Maintainer: emacs-devel@gnu.org
@@ -19,7 +19,7 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -28,6 +28,8 @@
 ;; `feature-file', documented in the Emacs Lisp manual.
 
 ;;; Code:
+
+(eval-when-compile (require 'cl-lib))
 
 (defun feature-symbols (feature)
   "Return the file and list of definitions associated with FEATURE.
@@ -80,12 +82,6 @@ A library name is equivalent to the file name that `load-library' would load."
       (when (eq (car-safe x) 'require)
 	(push (cdr x) requires)))))
 
-(defsubst file-set-intersect (p q)
-  "Return the set intersection of two lists."
-  (let (ret)
-    (dolist (x p ret)
-      (when (memq x q) (push x ret)))))
-
 (defun file-dependents (file)
   "Return the list of loaded libraries that depend on FILE.
 This can include FILE itself.
@@ -94,7 +90,8 @@ A library name is equivalent to the file name that `load-library' would load."
   (let ((provides (file-provides file))
 	(dependents nil))
     (dolist (x load-history dependents)
-      (when (file-set-intersect provides (file-requires (car x)))
+      (when (and (stringp (car x))
+                 (seq-intersection provides (file-requires (car x)) #'eq))
 	(push (car x) dependents)))))
 
 (defun read-feature (prompt &optional loaded-p)
@@ -131,7 +128,7 @@ from a file."
     font-lock-unfontify-region-function
     kill-buffer-query-functions kill-emacs-query-functions
     lisp-indent-function mouse-position-function
-    redisplay-end-trigger-functions suspend-tty-functions
+    suspend-tty-functions
     temp-buffer-show-function window-scroll-functions
     window-size-change-functions write-contents-functions
     write-file-functions write-region-annotate-functions)
@@ -141,8 +138,6 @@ These are symbols with hooklike values whose names don't end in
 `-hook' or `-hooks', from which `unload-feature' should try to remove
 pertinent symbols.")
 
-(define-obsolete-variable-alias 'unload-hook-features-list
-    'unload-function-defs-list "22.2")
 (defvar unload-function-defs-list nil
   "List of definitions in the Lisp library being unloaded.
 
@@ -162,6 +157,73 @@ documentation of `unload-feature' for details.")
           ;; mode, or proposed is not nil and not major-mode, and so we use it.
           (funcall (or proposed 'fundamental-mode)))))))
 
+(defvar loadhist-unload-filename nil)
+
+(cl-defgeneric loadhist-unload-element (x)
+  "Unload an element from the `load-history'.
+The variable `loadhist-unload-filename' holds the name of the file we're
+unloading."
+  (message "Unexpected element %S in load-history" x))
+
+(cl-defmethod loadhist-unload-element ((x (head defun)))
+  (let* ((fun (cdr x))
+         (hist (get fun 'function-history)))
+    (cond
+     ((null hist)
+      (defalias fun nil)
+      ;; FIXME: Arguably these properties should be applied via
+      ;; `define-symbol-prop', but most code still uses just `put'.
+      ;; FIXME: Maybe these properties should be attached to the
+      ;; function itself (as for `advertised-calling-convention')
+      ;; rather than to its symbol.
+      (if (get fun 'compiler-macro) (put fun 'compiler-macro nil))
+      (if (get fun 'gv-expander)    (put fun 'gv-expander nil))
+      ;; Override the change that `defalias' just recorded.
+      (put fun 'function-history nil))
+     ((equal (car hist) loadhist-unload-filename)
+      (defalias fun (cadr hist))
+      ;; Set the history afterwards, to override the change that
+      ;; `defalias' records otherwise.
+      (put fun 'function-history (cddr hist)))
+     (t
+      ;; Unloading a file whose definition is "inactive" (i.e. has been
+      ;; overridden by another file): just remove it from the history,
+      ;; so future unloading of that other file has a chance to DTRT.
+      (let* ((tmp (plist-member hist loadhist-unload-filename))
+             (pos (- (length hist) (length tmp))))
+        (cl-assert (> pos 1))
+        (setcdr (nthcdr (- pos 2) hist) (cdr tmp)))))))
+
+(cl-defmethod loadhist-unload-element ((_ (head require))) nil)
+(cl-defmethod loadhist-unload-element ((_ (head defface))) nil)
+
+(cl-defmethod loadhist-unload-element ((x (head provide)))
+  ;; Remove any feature names that this file provided.
+  (setq features (delq (cdr x) features)))
+
+(cl-defmethod loadhist-unload-element ((x symbol))
+  ;; Kill local values as much as possible.
+  (dolist (buf (buffer-list))
+    (with-current-buffer buf
+      (if (and (boundp x) (timerp (symbol-value x)))
+	  (cancel-timer (symbol-value x)))
+      (kill-local-variable x)))
+  (if (and (boundp x) (timerp (symbol-value x)))
+      (cancel-timer (symbol-value x)))
+  ;; Get rid of the default binding if we can.
+  (unless (local-variable-if-set-p x)
+    (makunbound x)))
+
+(cl-defmethod loadhist-unload-element ((x (head define-type)))
+  (let* ((name (cdr x)))
+    ;; Remove the struct.
+    (setf (cl--find-class name) nil)))
+
+(cl-defmethod loadhist-unload-element ((x (head define-symbol-props)))
+  (pcase-dolist (`(,symbol . ,props) (cdr x))
+    (dolist (prop props)
+      (put symbol prop nil))))
+
 ;;;###autoload
 (defun unload-feature (feature &optional force)
   "Unload the library that provided FEATURE.
@@ -169,11 +231,10 @@ If the feature is required by any other loaded code, and prefix arg FORCE
 is nil, raise an error.
 
 Standard unloading activities include restoring old autoloads for
-functions defined by the library, undoing any additions that the
-library has made to hook variables or to `auto-mode-alist', undoing
-ELP profiling of functions in that library, unproviding any features
-provided by the library, and canceling timers held in variables
-defined by the library.
+functions defined by the library, removing such functions from
+hooks and `auto-mode-alist', undoing their ELP profiling,
+unproviding any features provided by the library, and canceling
+timers held in variables defined by the library.
 
 If a function `FEATURE-unload-function' is defined, this function
 calls it with no arguments, before doing anything else.  That function
@@ -200,9 +261,7 @@ something strange, such as redefining an Emacs function."
 	       (prin1-to-string dependents) file))))
   (let* ((unload-function-defs-list (feature-symbols feature))
          (file (pop unload-function-defs-list))
-	 ;; If non-nil, this is a symbol for which we should
-	 ;; restore a previous autoload if possible.
-	 restore-autoload
+         (loadhist-unload-filename file)
 	 (name (symbol-name feature))
          (unload-hook (intern-soft (concat name "-unload-hook")))
 	 (unload-func (intern-soft (concat name "-unload-function"))))
@@ -225,67 +284,48 @@ something strange, such as redefining an Emacs function."
 	;; functions which the package might just have installed, and
 	;; there might be other important state, but this tactic
 	;; normally works.
-	(mapatoms
-	 (lambda (x)
-	   (when (and (boundp x)
-		      (or (and (consp (symbol-value x)) ; Random hooks.
-			       (string-match "-hooks?\\'" (symbol-name x)))
-			  (memq x unload-feature-special-hooks)))	; Known abnormal hooks etc.
-	     (dolist (y unload-function-defs-list)
-	       (when (and (eq (car-safe y) 'defun)
-			  (not (get (cdr y) 'autoload)))
-		 (remove-hook x (cdr y)))))))
-	;; Remove any feature-symbols from auto-mode-alist as well.
-	(dolist (y unload-function-defs-list)
-	  (when (and (eq (car-safe y) 'defun)
-		     (not (get (cdr y) 'autoload)))
-	    (setq auto-mode-alist
-		  (rassq-delete-all (cdr y) auto-mode-alist)))))
+        (let ((removables (cl-loop for def in unload-function-defs-list
+                                   when (and (eq (car-safe def) 'defun)
+                                             (not (get (cdr def) 'autoload)))
+                                   collect (cdr def))))
+          (mapatoms
+	   (lambda (x)
+	     (when (and (boundp x)
+		        (or (and (consp (symbol-value x)) ; Random hooks.
+			         (string-match "-hooks?\\'" (symbol-name x)))
+                            ;; Known abnormal hooks etc.
+			    (memq x unload-feature-special-hooks)))
+	       (dolist (func removables)
+	         (remove-hook x func)))))
+          (save-current-buffer
+            (dolist (buffer (buffer-list))
+              (pcase-dolist (`(,sym . ,val) (buffer-local-variables buffer))
+                (when (or (and (consp val)
+                               (string-match "-hooks?\\'" (symbol-name sym)))
+                          (memq sym unload-feature-special-hooks))
+                  (set-buffer buffer)
+                  (dolist (func removables)
+                    (remove-hook sym func t))))))
+          ;; Remove any feature-symbols from auto-mode-alist as well.
+          (dolist (func removables)
+            (setq auto-mode-alist
+                  (rassq-delete-all func auto-mode-alist)))))
 
       ;; Change major mode in all buffers using one defined in the feature being unloaded.
       (unload--set-major-mode)
 
-      (when (fboundp 'elp-restore-function) ; remove ELP stuff first
-	(dolist (elt unload-function-defs-list)
-	  (when (symbolp elt)
-	    (elp-restore-function elt))))
-
-      (dolist (x unload-function-defs-list)
-	(if (consp x)
-	    (pcase (car x)
-	      ;; Remove any feature names that this file provided.
-	      (`provide
-	       (setq features (delq (cdr x) features)))
-	      ((or `defun `autoload)
-	       (let ((fun (cdr x)))
-		 (when (fboundp fun)
-		   (when (fboundp 'ad-unadvise)
-		     (ad-unadvise fun))
-		   (let ((aload (get fun 'autoload)))
-		     (if (and aload (eq fun restore-autoload))
-			 (fset fun (cons 'autoload aload))
-		       (fmakunbound fun))))))
-	      ;; (t . SYMBOL) comes before (defun . SYMBOL)
-	      ;; and says we should restore SYMBOL's autoload
-	      ;; when we undefine it.
-	      (`t (setq restore-autoload (cdr x)))
-	      ((or `require `defface) nil)
-	      (_ (message "Unexpected element %s in load-history" x)))
-	  ;; Kill local values as much as possible.
-	  (dolist (buf (buffer-list))
-	    (with-current-buffer buf
-	      (if (and (boundp x) (timerp (symbol-value x)))
-		  (cancel-timer (symbol-value x)))
-	      (kill-local-variable x)))
-	  (if (and (boundp x) (timerp (symbol-value x)))
-	      (cancel-timer (symbol-value x)))
-	  ;; Get rid of the default binding if we can.
-	  (unless (local-variable-if-set-p x)
-	    (makunbound x))))
+      (mapc #'loadhist-unload-element unload-function-defs-list)
       ;; Delete the load-history element for this file.
       (setq load-history (delq (assoc file load-history) load-history))))
   ;; Don't return load-history, it is not useful.
   nil)
+
+;; Obsolete.
+
+(defsubst file-set-intersect (p q)
+  "Return the set intersection of two lists."
+  (declare (obsolete seq-intersection "28.1"))
+  (nreverse (seq-intersection p q #'eq)))
 
 (provide 'loadhist)
 

@@ -1,6 +1,6 @@
-;;; url-imap.el --- IMAP retrieval routines
+;;; url-imap.el --- IMAP retrieval routines  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 1999, 2004-2017 Free Software Foundation, Inc.
+;; Copyright (C) 1999, 2004-2023 Free Software Foundation, Inc.
 
 ;; Author: Simon Josefsson <jas@pdc.kth.se>
 ;; Keywords: comm, data, processes
@@ -18,12 +18,12 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
-;; Anyway, here's a teaser. It's quite broken in lots of regards, but at
-;; least it seem to work. At least a little. At least when called
+;; Anyway, here's a teaser.  It's quite broken in lots of regards, but at
+;; least it seem to work.  At least a little.  At least when called
 ;; manually like this (I've no idea how it's supposed to be called):
 
 ;; (url-imap (url-generic-parse-url "imap://cyrus.andrew.cmu.edu/archive.c-client;UID=1021"))
@@ -36,6 +36,9 @@
 (require 'mm-util)
 
 (defconst url-imap-default-port 143 "Default IMAP port.")
+
+(defvar imap-username)
+(defvar imap-password)
 
 (defun url-imap-open-host (host port user pass)
   ;; xxx use user and password
@@ -50,7 +53,7 @@
 			  (nnimap-authenticator ,authenticator)))))
 
 (defun url-imap (url)
-  (unless (vectorp url)
+  (unless (url-p url)
     (signal 'wrong-type-error (list "Need a pre-parsed URL." url)))
   (with-current-buffer (generate-new-buffer " *url-imap*")
     (mm-disable-multibyte)

@@ -1,6 +1,6 @@
-;;; canlock.el --- functions for Cancel-Lock feature
+;;; canlock.el --- functions for Cancel-Lock feature  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 1998-1999, 2001-2017 Free Software Foundation, Inc.
+;; Copyright (C) 1998-1999, 2001-2023 Free Software Foundation, Inc.
 
 ;; Author: Katsumi Yamaoka <yamaoka@jpl.org>
 ;; Keywords: news, cancel-lock, hmac, sha1, rfc2104
@@ -18,7 +18,7 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -30,7 +30,7 @@
 ;; Key) header in a news article by using a hook which will be evaluated
 ;; just before sending an article as follows:
 ;;
-;; (add-hook '*e**a*e-header-hook 'canlock-insert-header t)
+;; (add-hook '*e**a*e-header-hook #'canlock-insert-header t)
 ;;
 ;; Verifying Cancel-Lock is mainly a function of news servers, however,
 ;; you can verify your own article using the command `canlock-verify' in
@@ -40,9 +40,6 @@
 ;; options is a bit unsafe.
 
 ;;; Code:
-
-(eval-when-compile
-  (require 'cl))
 
 (require 'sha1)
 
@@ -55,25 +52,21 @@
 (defcustom canlock-password nil
   "Password to use when signing a Cancel-Lock or a Cancel-Key header."
   :type '(radio (const :format "Not specified " nil)
-		(string :tag "Password"))
-  :group 'canlock)
+		(string :tag "Password")))
 
 (defcustom canlock-password-for-verify canlock-password
   "Password to use when verifying a Cancel-Lock or a Cancel-Key header."
   :type '(radio (const :format "Not specified " nil)
-		(string :tag "Password"))
-  :group 'canlock)
+		(string :tag "Password")))
 
 (defcustom canlock-force-insert-header nil
   "If non-nil, insert a Cancel-Lock or a Cancel-Key header even if the
 buffer does not look like a news message."
-  :type 'boolean
-  :group 'canlock)
+  :type 'boolean)
 
 (defun canlock-sha1 (message)
   "Make a SHA-1 digest of MESSAGE as a unibyte string of length 20 bytes."
-  (let (sha1-maximum-internal-length)
-    (sha1 message nil nil 'binary)))
+  (sha1 message nil nil 'binary))
 
 (defun canlock-make-cancel-key (message-id password)
   "Make a Cancel-Key header."
@@ -87,10 +80,7 @@ buffer does not look like a news message."
 			   (char-to-string (logxor 92 byte)))
 			 password "")))
     (base64-encode-string
-     (canlock-sha1
-      (concat opad
-	      (canlock-sha1
-	       (concat ipad (string-as-unibyte message-id))))))))
+     (canlock-sha1 (concat opad (canlock-sha1 (concat ipad message-id)))))))
 
 (defun canlock-narrow-to-header ()
   "Narrow the buffer to the head of the message."

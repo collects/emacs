@@ -1,4 +1,4 @@
-;;; robin.el --- yet another input method (smaller than quail)
+;;; robin.el --- yet another input method (smaller than quail)  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
 ;;   National Institute of Advanced Industrial Science and Technology (AIST)
@@ -20,7 +20,7 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -276,8 +276,7 @@ this robin package will be the following.
        (?c \"AC\"
 	   (?d \"ACD\")
 	   (?e \"ACE\")))
-   (?b \"B\"))
-")
+   (?b \"B\"))")
 
 ;;;###autoload
 (defmacro robin-define-package (name docstring &rest rules)
@@ -371,14 +370,12 @@ Internal use only."
 
 ;;; Interactive use
 
-(defvar robin-mode nil
+(defvar-local robin-mode nil
   "If non-nil, `robin-input-method' is active.")
-(make-variable-buffer-local 'robin-mode)
 
-(defvar robin-current-package-name nil
+(defvar-local robin-current-package-name nil
   "String representing the name of the current robin package.
 A nil value means no package is selected.")
-(make-variable-buffer-local 'robin-current-package-name)
 
 ;;;###autoload
 (defun robin-use-package (name)
@@ -396,8 +393,6 @@ A nil value means no package is selected.")
   (interactive)
   (robin-activate -1))
 
-(define-obsolete-function-alias 'robin-inactivate 'robin-deactivate "24.3")
-
 (defun robin-activate (&optional arg)
   "Activate robin input method.
 
@@ -413,9 +408,7 @@ While this input method is active, the variable
 	  (progn
 	    (setq robin-mode nil)
 	    (setq describe-current-input-method-function nil)
-	    (run-hooks
-	     'robin-inactivate-hook ; for backward compatibility
-	     'robin-deactivate-hook))
+	    (run-hooks 'robin-deactivate-hook))
 	(kill-local-variable 'input-method-function))
 
     ;; activate robin input method.
@@ -426,12 +419,7 @@ While this input method is active, the variable
 	(add-hook 'minibuffer-exit-hook 'robin-exit-from-minibuffer))
     (run-hooks 'input-method-activate-hook
 	       'robin-activate-hook)
-    (set (make-local-variable 'input-method-function)
-	 'robin-input-method)))
-
-(define-obsolete-variable-alias
-  'robin-inactivate-hook
-  'robin-deactivate-hook "24.3")
+    (setq-local input-method-function 'robin-input-method)))
 
 (defun robin-exit-from-minibuffer ()
   (deactivate-input-method)
@@ -535,10 +523,10 @@ Use the longest match method to select a rule."
       (insert (cadr tree))
       (delete-char (- end begin)))))
 
-;; for backward compatibility
-
-(fset 'robin-transliterate-region 'robin-convert-region)
-(fset 'robin-transliterate-buffer 'robin-convert-buffer)
+(define-obsolete-function-alias 'robin-transliterate-region
+  #'robin-convert-region "29.1")
+(define-obsolete-function-alias 'robin-transliterate-buffer
+  #'robin-convert-buffer "29.1")
 
 ;;; Reverse conversion
 

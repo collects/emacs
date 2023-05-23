@@ -1,6 +1,6 @@
-;;; semantic/ia.el --- Interactive Analysis functions
+;;; semantic/ia.el --- Interactive Analysis functions  -*- lexical-binding: t; -*-
 
-;;; Copyright (C) 2000-2017 Free Software Foundation, Inc.
+;; Copyright (C) 2000-2023 Free Software Foundation, Inc.
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
 ;; Keywords: syntax
@@ -18,7 +18,7 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 ;;
@@ -79,15 +79,9 @@
 	   (insert "("))
 	  (t nil))))
 
-(defalias 'semantic-ia-get-completions 'semantic-ia-get-completions-deprecated
-  "`Semantic-ia-get-completions' is obsolete.
-Use `semantic-analyze-possible-completions' instead.")
-
-(defun semantic-ia-get-completions-deprecated (context point)
-  "A function to help transition away from `semantic-ia-get-completions'.
-Return completions based on CONTEXT at POINT.
-You should not use this, nor the aliased version.
-Use `semantic-analyze-possible-completions' instead."
+(defun semantic-ia-get-completions (context _point)
+  "Fetch the completion of CONTEXT at POINT."
+  (declare (obsolete semantic-analyze-possible-completions "28.1"))
   (semantic-analyze-possible-completions context))
 
 ;;;###autoload
@@ -163,7 +157,7 @@ Completion options are calculated with `semantic-analyze-possible-completions'."
     (if (not syms)
 	(progn
 	  (message "No smart completions found.")
-          ;; Disabled - see http://debbugs.gnu.org/14522
+          ;; Disabled - see https://debbugs.gnu.org/14522
 	  ;; (message "No smart completions found.  Trying Senator.")
 	  ;; (when (semantic-analyze-context-p a)
 	  ;;   ;; This is a quick way of getting a nice completion list
@@ -252,7 +246,7 @@ Completion options are calculated with `semantic-analyze-possible-completions'."
 ;;;###autoload
 (defun semantic-ia-show-variants (point)
   "Display a list of all variants for the symbol under POINT."
-  (interactive "P")
+  (interactive "d")
   (let* ((ctxt (semantic-analyze-current-context point))
 	 (comp nil))
 
@@ -316,13 +310,13 @@ This helper manages the mark, buffer switching, and pulsing."
   ;; 1) Push the mark, so you can pop global mark back, or
   ;;    use semantic-mru-bookmark mode to do so.
   (push-mark)
-  (when (fboundp 'push-tag-mark)
-    (push-tag-mark))
+  (when (fboundp 'xref-push-marker-stack)
+    (xref-push-marker-stack))
   ;; 2) Visits the tag.
   (semantic-go-to-tag dest)
   ;; 3) go-to-tag doesn't switch the buffer in the current window,
   ;;    so it is like find-file-noselect.  Bring it forward.
-  (switch-to-buffer (current-buffer))
+  (pop-to-buffer-same-window (current-buffer))
   ;; 4) Fancy pulsing.
   (pulse-momentary-highlight-one-line (point))
   )
@@ -385,8 +379,8 @@ origin of the code at point."
       ;; Push the mark, so you can pop global mark back, or
       ;; use semantic-mru-bookmark mode to do so.
       (push-mark)
-      (when (fboundp 'push-tag-mark)
-	(push-tag-mark))
+      (when (fboundp 'xref-push-marker-stack)
+	(xref-push-marker-stack))
 
       (semantic-decoration-include-visit)
       )
@@ -463,7 +457,7 @@ parts of the parent classes are displayed."
   ;; it.  The simple `semanticdb-find-tag-by-...' are simple, and
   ;; you need to pass it the exact name you want.
   ;;
-  ;; The analyzer function `semantic-analyze-tag-name' will take
+  ;; The analyzer function `semantic-analyze-find-tag' will take
   ;; more complex names, such as the cpp symbol foo::bar::baz,
   ;; and break it up, and dive through the namespaces.
   (let ((class (semantic-analyze-find-tag typename)))

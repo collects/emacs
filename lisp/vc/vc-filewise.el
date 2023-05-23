@@ -1,9 +1,9 @@
-;;; vc-filewise.el --- common functions for file-oriented back ends.
+;;; vc-filewise.el --- common functions for file-oriented back ends.  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 1992-1996, 1998-2017 Free Software Foundation, Inc.
+;; Copyright (C) 1992-1996, 1998-2023 Free Software Foundation, Inc.
 
-;; Author:     FSF (see vc.el for full credits)
-;; Maintainer: Andre Spiegel <spiegel@gnu.org>
+;; Author: FSF (see vc.el for full credits)
+;; Maintainer: emacs-devel@gnu.org
 ;; Package: vc
 
 ;; This file is part of GNU Emacs.
@@ -19,7 +19,7 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -82,3 +82,5 @@ If the file is not registered, or the master name is not known, return nil."
 	nil))))				; Not registered
 
 (provide 'vc-filewise)
+
+;;; vc-filewise.el ends here

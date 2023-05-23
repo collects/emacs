@@ -1,6 +1,6 @@
-;;; spam-wash.el --- wash spam before analysis
+;;; spam-wash.el --- wash spam before analysis  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2004, 2007-2017 Free Software Foundation, Inc.
+;; Copyright (C) 2004, 2007-2023 Free Software Foundation, Inc.
 
 ;; Author: Andrew Cohen <cohen@andy.bu.edu>
 ;; Keywords: mail
@@ -18,7 +18,7 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -43,7 +43,7 @@
 	     (handles (or (mm-dissect-buffer nil gnus-article-loose-mime)
 			  (and gnus-article-emulate-mime
 			       (mm-uu-dissect))))
-	     handle)
+	     ) ;; handle
 	  (when gnus-article-mime-handles
 	    (mm-destroy-parts gnus-article-mime-handles)
 	    (setq gnus-article-mime-handle-alist nil))
@@ -57,7 +57,7 @@
 
 (defun spam-treat-parts (handle)
   (if (stringp (car handle))
-      (mapcar 'spam-treat-parts (cdr handle))
+      (mapcar #'spam-treat-parts (cdr handle))
     (if (bufferp (car handle))
 	(save-restriction
 	  (narrow-to-region (point) (point))
@@ -65,7 +65,7 @@
 		(string-match "text" (car (mm-handle-type handle))))
 	  (mm-insert-part handle))
 	  (goto-char (point-max)))
-      (mapcar 'spam-treat-parts handle))))
+      (mapcar #'spam-treat-parts handle))))
 
 (provide 'spam-wash)
 

@@ -1,6 +1,6 @@
-;;; mm-archive.el --- Functions for parsing archive files as MIME
+;;; mm-archive.el --- Functions for parsing archive files as MIME  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2012-2017 Free Software Foundation, Inc.
+;; Copyright (C) 2012-2023 Free Software Foundation, Inc.
 
 ;; Author: Lars Magne Ingebrigtsen <larsi@gnus.org>
 ;; This file is part of GNU Emacs.
@@ -16,7 +16,7 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -24,22 +24,27 @@
 
 (require 'mm-decode)
 (autoload 'gnus-recursive-directory-files "gnus-util")
+(autoload 'gnus-get-buffer-create "gnus")
 (autoload 'mailcap-extension-to-mime "mailcap")
 
 (defvar mm-archive-decoders
   '(("application/ms-tnef" t "tnef" "-f" "-" "-C")
     ("application/zip" nil "unzip" "-j" "-x" "%f" "-d")
     ("application/x-gtar-compressed" nil "tar" "xzf" "-" "-C")
+    ("application/x-tar-gz" nil "tar" "xzf" "-" "-C")
     ("application/x-tar" nil "tar" "xf" "-" "-C")))
 
 (defun mm-archive-decoders () mm-archive-decoders)
 
 (defun mm-dissect-archive (handle)
-  (let ((decoder (cddr (assoc (car (mm-handle-type handle))
-			      mm-archive-decoders)))
-	(dir (make-temp-file
-	      (expand-file-name "emm." mm-tmp-directory) 'dir)))
-    (set-file-modes dir #o700)
+  (let* ((type (car (mm-handle-type handle)))
+	 (decoder (cddr (assoc type mm-archive-decoders)))
+	 dir)
+    (unless decoder
+      (error "No decoder found for %s" type))
+    (with-file-modes #o700
+      (setq dir (make-temp-file (expand-file-name "emm." mm-tmp-directory)
+				'dir)))
     (unwind-protect
 	(progn
 	  (mm-with-unibyte-buffer
@@ -49,11 +54,11 @@
 		  (write-region (point-min) (point-max) file nil 'silent)
 		  (setq decoder (copy-sequence decoder))
 		  (setcar (member "%f" decoder) file)
-		  (apply 'call-process (car decoder) nil nil nil
+		  (apply #'call-process (car decoder) nil nil nil
 			 (append (cdr decoder) (list dir)))
 		  (delete-file file))
-	      (apply 'call-process-region (point-min) (point-max) (car decoder)
-		     nil (get-buffer-create "*tnef*")
+	      (apply #'call-process-region (point-min) (point-max) (car decoder)
+		     nil (gnus-get-buffer-create "*tnef*")
 		     nil (append (cdr decoder) (list dir)))))
 	  `("multipart/mixed"
 	    ,handle
@@ -95,12 +100,12 @@
       (goto-char (point-max))
       (mm-handle-set-undisplayer
        handle
-       `(lambda ()
-	  (let ((inhibit-read-only t)
-		(end ,(point-marker)))
-	    (remove-images ,start end)
-	    (delete-region ,start end)))))))
+       (let ((end (point-marker)))
+	 (lambda ()
+	   (let ((inhibit-read-only t))
+	     (remove-images start end)
+	     (delete-region start end))))))))
 
 (provide 'mm-archive)
 
-;; mm-archive.el ends here
+;;; mm-archive.el ends here

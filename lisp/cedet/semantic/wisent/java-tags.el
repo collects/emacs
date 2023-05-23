@@ -1,9 +1,8 @@
-;;; semantic/wisent/java-tags.el --- Java LALR parser for Emacs
+;;; semantic/wisent/java-tags.el --- Java LALR parser for Emacs  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2001-2006, 2009-2017 Free Software Foundation, Inc.
+;; Copyright (C) 2001-2006, 2009-2023 Free Software Foundation, Inc.
 
 ;; Author: David Ponce <david@dponce.com>
-;; Maintainer: David Ponce <david@dponce.com>
 ;; Created: 15 Dec 2001
 ;; Keywords: syntax
 
@@ -20,12 +19,9 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
-;;
-
-;;; History:
 ;;
 
 ;;; Code:
@@ -75,7 +71,7 @@ This function override `get-local-variables'."
     ;; Add 'this' if in a fcn
     (when (semantic-tag-of-class-p ct 'function)
       ;; Append a new tag THIS into our space.
-      (setq vars (cons (semantic-tag-new-variable 
+      (setq vars (cons (semantic-tag-new-variable
 			"this" (semantic-tag-name (semantic-current-tag-parent))
 			nil)
 		       vars)))
@@ -93,7 +89,7 @@ This function override `get-local-variables'."
 
 (define-mode-local-override semantic-analyze-unsplit-name java-mode (namelist)
   "Assemble the list of names NAMELIST into a namespace name."
-  (mapconcat 'identity namelist "."))
+  (mapconcat #'identity namelist "."))
 
 
 
@@ -112,12 +108,12 @@ Use the alternate LALR(1) parser."
   (setq
    ;; Lexical analysis
    semantic-lex-number-expression semantic-java-number-regexp
-   semantic-lex-analyzer 'wisent-java-tags-lexer
+   semantic-lex-analyzer #'wisent-java-tags-lexer
    ;; Parsing
-   semantic-tag-expand-function 'semantic-java-expand-tag
+   semantic-tag-expand-function #'semantic-java-expand-tag
    ;; Environment
-   semantic-imenu-summary-function 'semantic-format-tag-prototype
-   imenu-create-index-function 'semantic-create-imenu-index
+   semantic-imenu-summary-function #'semantic-format-tag-prototype
+   imenu-create-index-function #'semantic-create-imenu-index
    semantic-type-relation-separator-character '(".")
    semantic-command-separation-character ";"
    ;; speedbar and imenu buckets name

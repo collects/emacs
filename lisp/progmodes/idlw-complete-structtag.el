@@ -1,9 +1,9 @@
-;;; idlw-complete-structtag.el --- Completion of structure tags.
+;;; idlw-complete-structtag.el --- Completion of structure tags.  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2001-2017 Free Software Foundation, Inc.
+;; Copyright (C) 2001-2023 Free Software Foundation, Inc.
 
 ;; Author: Carsten Dominik <dominik@astro.uva.nl>
-;; Maintainer: J.D. Smith <jdsmith@as.arizona.edu>
+;; Maintainer: emacs-devel@gnu.org
 ;; Old-Version: 1.2
 ;; Keywords: languages
 ;; Package: idlwave
@@ -21,7 +21,7 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -44,20 +44,19 @@
 ;; completion for its tags.
 ;;
 ;; This file is a completion plugin which implements this kind of
-;; completion. It is also an example which shows how completion plugins
+;; completion.  It is also an example which shows how completion plugins
 ;; should be programmed.
 ;;
 ;; New versions of IDLWAVE, documentation, and more information available
 ;; from:
-;;                 http://github.com/jdtsmith/idlwave
+;;                 https://github.com/jdtsmith/idlwave
 ;;
 ;; INSTALLATION
 ;; ============
-;; Put this file on the emacs load path and load it with the following
-;; line in your init file:
+;; Load it with the following line in your init file:
 ;;
-;;   (add-hook 'idlwave-load-hook
-;;             (lambda () (require 'idlw-complete-structtag)))
+;;   (with-eval-after-load 'idlwave
+;;     (require 'idlw-complete-structtag))
 ;;
 ;; DESCRIPTION
 ;; ===========
@@ -87,6 +86,8 @@
 ;;  - You can force an update of the tag list with the usual command
 ;;    to update routine info in IDLWAVE: C-c C-i
 
+;;; Code:
+
 (require 'idlwave)
 
 (declare-function idlwave-shell-buffer "idlw-shell")
@@ -101,12 +102,11 @@
 (defvar idlwave-sint-structtags nil)
 
 ;; Create the sintern type for structure talks
-(declare-function idlwave-sintern-structtag "idlw-complete-structtag" t t)
-(idlwave-new-sintern-type 'structtag)
+(idlwave-new-sintern-type structtag)
 
 ;; Hook the plugin into idlwave
-(add-to-list 'idlwave-complete-special 'idlwave-complete-structure-tag)
-(add-hook 'idlwave-update-rinfo-hook 'idlwave-structtag-reset)
+(add-hook 'idlwave-complete-functions #'idlwave-complete-structure-tag)
+(add-hook 'idlwave-update-rinfo-hook #'idlwave-structtag-reset)
 
 ;;; The main code follows below
 (defvar idlwave-completion-help-info)
@@ -128,7 +128,7 @@ an up-to-date completion list."
           ;; x[i+4].name.g*.  But it is complicated because we would have
           ;; to really parse this expression.  For now, we allow only
           ;; substructures, like "aaa.bbb.ccc.ddd"
-	  (skip-chars-backward "[a-zA-Z0-9._$]")
+	  (skip-chars-backward "a-zA-Z0-9._$")
           (setq start (point)) ;; remember the start of the completion pos.
 	  (and (< (point) pos)
 	       (not (equal (char-before) ?!)) ; no sysvars
@@ -148,9 +148,9 @@ an up-to-date completion list."
                   (not (equal start idlwave-current-tags-completion-pos)))
 	      (idlwave-prepare-structure-tag-completion var))
           (setq idlwave-current-tags-completion-pos start)
-	  (setq idlwave-completion-help-info 
+	  (setq idlwave-completion-help-info
 		(list 'idlwave-complete-structure-tag-help))
-	  (idlwave-complete-in-buffer 'structtag 'structtag 
+	  (idlwave-complete-in-buffer 'structtag 'structtag
 				      idlwave-current-struct-tags nil
 				      "Select a structure tag" "structure tag")
 	  t) ; we did the completion: return t to skip other completions
@@ -169,7 +169,7 @@ an up-to-date completion list."
   (if (derived-mode-p 'idlwave-shell-mode)
       ;; OK, we are in the shell, do it dynamically
       (progn
-        (message "preparing shell tags") 
+        (message "preparing shell tags")
         ;; The following call puts the tags into `idlwave-current-struct-tags'
         (idlwave-complete-structure-tag-query-shell var)
         ;; initialize
@@ -191,7 +191,7 @@ an up-to-date completion list."
             ;; Find possible definitions of the structure.
             (while (idlwave-find-structure-definition var nil 'all)
               (let ((tags (idlwave-struct-tags)))
-                (when tags 
+                (when tags
                   ;; initialize
                   (setq idlwave-sint-structtags nil
                         idlwave-current-tags-buffer (current-buffer)

@@ -1,6 +1,6 @@
-;;; url-parse-tests.el --- Test suite for URI/URL parsing.
+;;; url-parse-tests.el --- Test suite for URI/URL parsing.  -*- lexical-binding:t -*-
 
-;; Copyright (C) 2012-2017 Free Software Foundation, Inc.
+;; Copyright (C) 2012-2023 Free Software Foundation, Inc.
 
 ;; Author: Alain Schneble <a.s@realize.ch>
 ;; Version: 1.0
@@ -18,12 +18,12 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
 ;; Test cases covering generic URI syntax as described in RFC3986,
-;; section 3. Syntax Components and 4. Usage. See also appendix
+;; section 3. Syntax Components and 4. Usage.  See also appendix
 ;; A. Collected ABNF for URI, as the example given here are all
 ;; productions of this grammar.
 
@@ -161,6 +161,11 @@
   (should (equal (url-generic-parse-url "") (url-parse-make-urlobj nil nil nil nil nil "" nil nil nil)))
   (should (equal (url-generic-parse-url "#") (url-parse-make-urlobj nil nil nil nil nil "" "" nil nil)))
   (should (equal (url-generic-parse-url "#foo") (url-parse-make-urlobj nil nil nil nil nil "" "foo" nil nil))))
+
+(ert-deftest url-generic-parse-url/multibyte-host-and-path ()
+  (should (equal (url-generic-parse-url "http://банки.рф/фыва/")
+                 (url-parse-make-urlobj "http" nil nil "банки.рф" nil
+                                        "/фыва/" nil nil t))))
 
 (provide 'url-parse-tests)
 

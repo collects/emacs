@@ -1,6 +1,6 @@
 # Files that Git should ignore in the Emacs source directory.
 
-# Copyright 2009-2017 Free Software Foundation, Inc.
+# Copyright 2009-2023 Free Software Foundation, Inc.
 
 # This file is part of GNU Emacs.
 
@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 
 # You should have received a copy of the GNU General Public License
-# along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+# along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 
 # Currently we assume only Git 1.7.1 (April 2010) or later, so this
@@ -23,17 +23,13 @@
 # in Git 1.8.2 (March 2013).
 
 
+# Personal customization.
+.dir-locals-2.el
+.no-advice-on-failure
+
 # Built by 'autogen.sh'.
 /aclocal.m4
 /configure
-build-aux/ar-lib
-build-aux/compile
-build-aux/config.guess
-build-aux/config.sub
-build-aux/depcomp
-build-aux/install-sh
-build-aux/missing
-lib/Makefile.in
 src/config.in
 
 # Built by 'configure'.
@@ -42,32 +38,36 @@ InfoPlist.strings
 Makefile
 makefile
 !etc/refcards/Makefile
-!modules/mod-test/Makefile
 !test/lisp/progmodes/flymake-resources/Makefile
-!test/manual/indent/Makefile
 !test/manual/etags/Makefile
 !test/manual/etags/make-src/Makefile
+!test/manual/indent/Makefile
 /*.cache
 /confdefs.h
 /config.status
 /configure.lineno
 /conftest*
+lib/gnulib.mk
 src/config.h
 src/epaths.h
+src/emacs-module.h
 
 # C-level sources built by 'make'.
 lib/alloca.h
-lib/arg-nonnull.h
+lib/assert.h
 lib/byteswap.h
-lib/c++defs.h
 lib/dirent.h
 lib/errno.h
 lib/execinfo.h
 lib/fcntl.h
 lib/getopt.h
+lib/getopt-cdefs.h
+lib/gmp.h
+lib/ieee754.h
 lib/inttypes.h
 lib/libgnu.a
 lib/limits.h
+lib/malloc/*.gl.h
 lib/signal.h
 lib/std*.h
 !lib/std*.in.h
@@ -76,10 +76,10 @@ lib/string.h
 lib/sys/
 lib/time.h
 lib/unistd.h
-lib/warn-on-use.h
 src/buildobj.h
 src/globals.h
 src/lisp.mk
+src/verbose.mk
 
 # Lisp-level sources built by 'make'.
 *cus-load.el
@@ -91,6 +91,7 @@ lisp/cedet/semantic/wisent/javat-wy.el
 lisp/cedet/semantic/wisent/js-wy.el
 lisp/cedet/semantic/wisent/python-wy.el
 lisp/cedet/srecode/srt-wy.el
+lisp/cedet/semantic/grammar-wy.el
 lisp/eshell/esh-groups.el
 lisp/finder-inf.el
 lisp/leim/ja-dic/
@@ -120,7 +121,6 @@ lisp/mh-e/mh-autoloads.el
 lisp/subdirs.el
 
 # Dependencies.
-.deps/
 deps/
 
 # Logs and temporaries.
@@ -131,8 +131,6 @@ deps/
 *.stamp
 stamp_BLD
 src/gl-stamp
-src/stamp-h.in
-src/stamp-h1
 
 # Object files and debugging.
 *.a
@@ -140,25 +138,31 @@ src/stamp-h1
 *.dll
 *.core
 *.elc
+*.eln
 *.o
 *.res
 *.so
-[0-9]*.core
+*.dylib
 core
 core.*[0-9]
 gmon.out
+native-lisp/
 oo/
 oo-spd/
 src/*.map
+vgcore.*[0-9]
 
 # Tests.
-test/indent/*.new
-test/make-test-deps.mk
 test/manual/biditest.txt
 test/manual/etags/srclist
 test/manual/etags/regexfile
 test/manual/etags/ETAGS
 test/manual/etags/CTAGS
+test/manual/etags/CTAGS*.sorted
+test/manual/indent/*.new
+test/lisp/gnus/mml-sec-resources/random_seed
+test/lisp/play/fortune-resources/fortunes.dat
+test/**/*.xml
 
 # ctags, etags.
 TAGS
@@ -170,12 +174,19 @@ GSYMS
 GRTAGS
 GTAGS
 
+# auto-generated compilation database
+compile_commands.json
+
+# ccls, a LSP-compliant server for C
+/.ccls-cache
+
 # GNU idutils.
 ID
 
 # Executables.
 *.exe
 a.out
+lib-src/be-resources
 lib-src/blessmail
 lib-src/ctags
 lib-src/ebrowse
@@ -183,8 +194,10 @@ lib-src/emacsclient
 lib-src/etags
 lib-src/hexl
 lib-src/make-docfile
+lib-src/make-fingerprint
 lib-src/movemail
 lib-src/profile
+lib-src/seccomp-filter
 lib-src/test-distrib
 lib-src/update-game-score
 nextstep/Cocoa/Emacs.base/Contents/Info.plist
@@ -195,7 +208,10 @@ nextstep/GNUstep/Emacs.base/Resources/Info-gnustep.plist
 src/bootstrap-emacs
 src/emacs
 src/emacs-[0-9]*
+src/Emacs
 src/temacs
+src/dmpstruct.h
+src/*.pdmp
 
 # Character-set info.
 admin/charsets/jisx2131-filter
@@ -204,8 +220,12 @@ etc/charsets/*.map
 lisp/international/charprop.el
 lisp/international/charscript.el
 lisp/international/cp51932.el
+lisp/international/emoji-zwj.el
+lisp/international/emoji-labels.el
 lisp/international/eucjp-ms.el
 lisp/international/uni-*.el
+lisp/international/idna-mapping.el
+lisp/language/pinyin.el
 
 # Documentation.
 *.aux
@@ -248,6 +268,8 @@ doc/*/*/*.ps
 doc/emacs/emacsver.texi
 doc/man/emacs.1
 doc/misc/cc-mode.ss
+doc/misc/modus-themes.texi
+doc/misc/org.texi
 etc/DOC
 etc/refcards/emacsver.tex
 gnustmp*
@@ -255,18 +277,20 @@ gnustmp*
 
 # Version control and locks.
 *.orig
-*.rej
+*.swp
 *~
 .#*
 \#*\#
 ChangeLog
 [0-9]*.patch
 [0-9]*.txt
-.dir-locals?.el
 /vc-dwim-log-*
 
 # Built by 'make install'.
 etc/emacs.tmpdesktop
+
+# Built by 'make-dist'.
+/MANIFEST
 
 # Distribution directories.
 /emacs-[1-9]*/
@@ -274,7 +298,8 @@ etc/emacs.tmpdesktop
 # Microsoft-related builds and installations.
 *.in-h
 _*
-!build-aux/snippet/_Noreturn.h
+!lib/_Noreturn.h
+!m4/_*.m4
 /bin/
 /BIN/
 /data/
@@ -288,6 +313,28 @@ lib/SYS/
 /site-lisp/
 nt/emacs.rc
 nt/emacsclient.rc
-nt/gnulib.mk
 src/gdb.ini
 /var/
+
+# Seccomp filter files.
+lib-src/seccomp-filter.bpf
+lib-src/seccomp-filter.pfc
+lib-src/seccomp-filter-exec.bpf
+lib-src/seccomp-filter-exec.pfc
+
+# gsettings schema
+/etc/*.gschema.valid
+
+# Ignore directory made by admin/make-manuals.
+/manual/
+
+# Ignore Finder files on MacOS.
+.DS_Store
+
+# Ignore a directory used by dap-mode.
+.vscode
+/test/gmp.h
+
+# GDB history
+.gdb_history
+_gdb_history

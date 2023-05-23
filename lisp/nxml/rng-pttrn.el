@@ -1,6 +1,6 @@
 ;;; rng-pttrn.el --- RELAX NG patterns  -*- lexical-binding:t -*-
 
-;; Copyright (C) 2003, 2007-2017 Free Software Foundation, Inc.
+;; Copyright (C) 2003, 2007-2023 Free Software Foundation, Inc.
 
 ;; Author: James Clark
 ;; Keywords: wp, hypermedia, languages, XML, RelaxNG
@@ -18,7 +18,7 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -66,9 +66,8 @@
 (defvar rng-schema-change-hook nil
   "Hook to be run after `rng-current-schema' changes.")
 
-(defvar rng-current-schema nil
+(defvar-local rng-current-schema nil
   "Pattern to be used as schema for the current buffer.")
-(make-variable-buffer-local 'rng-current-schema)
 
 (defun rng-make-ref (name)
   (list 'ref nil name))

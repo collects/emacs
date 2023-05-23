@@ -1070,7 +1070,7 @@
 	* international/mule-cmds.el (char-code-property-alist): New variable.
 	(define-char-code-property): New function.
 	(get-char-code-property, put-char-code-property): Handle a
-	char-table registerd in char-code-property-alist.
+	char-table registered in char-code-property-alist.
 	(set-language-environment): Check :ascii-compatible-p property of
 	nonascii charset instead of its dimension.
 
@@ -4667,7 +4667,7 @@
 2008-01-02  Karl Fogel  <kfogel@red-bean.com>
 
 	Change a return type, for greater extensibility.
-	See http://lists.gnu.org/archive/html/emacs-devel/2007-12/msg01077.html
+	See https://lists.gnu.org/r/emacs-devel/2007-12/msg01077.html
 	and its thread for discussion leading to this change.
 
 	* bookmark.el (bookmark-jump-noselect):
@@ -4765,7 +4765,7 @@
 2007-12-30  Michael Albinus  <michael.albinus@gmx.de>
 
 	* net/dbus.el (dbus-name-owner-changed-handler): Make the function
-	resistent towards wrong parameters.
+	resistant towards wrong parameters.
 	(dbus-handle-event): Propagate D-Bus errors only in the debug case.
 
 2007-12-30  Richard Stallman  <rms@gnu.org>
@@ -5001,7 +5001,7 @@
 
 	* vc.el (vc-dired-ignorable-p, vc-dired-hook): Speed optimization;
 	use completion-ignored-extensions to detect files that should be
-	ignorted in VC-Dired listings, heading off lots of expensive calls
+	ignored in VC-Dired listings, heading off lots of expensive calls
 	to (vc-state).
 
 	* vc.el (vc-dired-hook): Show unregistered file status as "?" in
@@ -11475,7 +11475,7 @@
 	(fancy-about-text): Add links "Authors" and "Contributing".
 	(fancy-splash-head): Add text "Welcome to " on the startup screen,
 	and "This is " on the about screen.  Add link to
-	"http://www.gnu.org/software/emacs/" for "GNU Emacs".
+	"https://www.gnu.org/software/emacs/" for "GNU Emacs".
 	For the about screen move emacs version to the header from
 	`fancy-splash-tail' (as it's done already for normal about screen).
 	(fancy-splash-tail): Insert emacs version only for startup screen.
@@ -13901,7 +13901,7 @@
 2007-07-23  Stefan Monnier  <monnier@iro.umontreal.ca>
 
 	* ses.el (ses-cleanup): Prevent Emacs from spuriously checking if the
-	underlying file is uptodate.
+	underlying file is up-to-date.
 
 2007-07-23  Christopher J. Madsen  <cjm@cjmweb.net>
 
@@ -14464,7 +14464,7 @@
 
 	* bookmark.el: Revert 2007-07-13T18:16:17Z!kfogel@red-bean.com,
 	thus restoring bookmark bindings to three slots under C-x r.  See
-	http://lists.gnu.org/archive/html/emacs-devel/2007-07/msg00705.html.
+	https://lists.gnu.org/r/emacs-devel/2007-07/msg00705.html.
 
 2007-07-15  Jeff Miller  <jmiller@cablespeed.com>  (tiny change)
 
@@ -14511,7 +14511,7 @@
 	* bookmark.el (bookmark-jump-other-window): New function.
 	(bookmark-map): Bind it to "o".
 
-	http://lists.gnu.org/archive/html/emacs-devel/2007-07/msg00633.html
+	https://lists.gnu.org/r/emacs-devel/2007-07/msg00633.html
 	and its thread contains discussion about this change.
 	The original patch was slightly tweaked by Karl Fogel
 	<kfogel@red-bean.com> before committing.
@@ -14525,7 +14525,7 @@
 	* bookmark.el: Don't define bookmark keys under the "C-xr" map;
 	instead, make "C-xp" a prefix for bookmark-map.  Patch by Drew
 	Adams <drew.adams@oracle.com>, mildly tweaked by me.  See
-	http://lists.gnu.org/archive/html/emacs-devel/2007-07/msg00633.html.
+	https://lists.gnu.org/r/emacs-devel/2007-07/msg00633.html.
 
 2007-07-13  Carsten Dominik  <dominik@science.uva.nl>
 
@@ -15245,7 +15245,7 @@
 2007-06-25  Stefan Monnier  <monnier@iro.umontreal.ca>
 
 	* emacs-lisp/autoload.el (autoload-modified-buffers): New var.
-	(autoload-find-destination): Keep it uptodate.
+	(autoload-find-destination): Keep it up-to-date.
 	(autoload-save-buffers): New fun.
 	(update-file-autoloads): Use it.  Re-add the "up to date" message.
 
@@ -16523,7 +16523,7 @@
 
 	* vc-hooks.el (vc-find-root): Stop searching when the user changes.
 
-2007-05-09  Edward O'Connor  <hober0@gmail.com>  (tiny change)
+2007-05-09  Theresa O'Connor  <hober0@gmail.com>  (tiny change)
 
 	* progmodes/python.el (python-font-lock-keywords)
 	(python-open-block-statement-p, python-mode): Add support for the new
@@ -16697,7 +16697,7 @@ See ChangeLog.12 for earlier changes.
 ;; coding: utf-8
 ;; End:
 
-  Copyright (C) 2007-2017 Free Software Foundation, Inc.
+  Copyright (C) 2007-2023 Free Software Foundation, Inc.
 
   This file is part of GNU Emacs.
 
@@ -16712,4 +16712,4 @@ See ChangeLog.12 for earlier changes.
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+  along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.

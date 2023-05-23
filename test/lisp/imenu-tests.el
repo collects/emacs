@@ -1,6 +1,6 @@
-;;; imenu-tests.el --- Test suite for imenu.
+;;; imenu-tests.el --- Test suite for imenu.  -*- lexical-binding:t -*-
 
-;; Copyright (C) 2013-2017 Free Software Foundation, Inc.
+;; Copyright (C) 2013-2023 Free Software Foundation, Inc.
 
 ;; Author: Masatake YAMATO <yamato@redhat.com>
 ;; Keywords: tools convenience
@@ -18,7 +18,7 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Code:
 
@@ -50,24 +50,23 @@
 	(setq input (cdr input)))))
     result))
 
-(defmacro imenu-simple-scan-deftest (name doc major-mode content expected-items)
+(defmacro imenu-simple-scan-deftest (name doc mode content expected-items)
   "Generate an ert test for mode-own imenu expression.
 Run `imenu-create-index-function' at the buffer which content is
-CONTENT with MAJOR-MODE. A generated test runs `imenu-create-index-function'
-at the buffer which content is CONTENT with MAJOR-MODE. Then it compares a list
-of strings which are picked up from the result with EXPECTED-ITEMS."
+CONTENT with major MODE.  A generated test runs `imenu-create-index-function'
+at the buffer which content is CONTENT with major MODE.  Then it compares a
+list of strings which are picked up from the result with EXPECTED-ITEMS."
   (let ((xname (intern (concat "imenu-simple-scan-deftest-" (symbol-name name)))))
     `(ert-deftest ,xname ()
-	 ,doc
+       ,doc
        (with-temp-buffer
 	 (insert ,content)
-	 (funcall ',major-mode)
+         (funcall #',mode)
 	 (let ((result-items (sort (imenu-simple-scan-deftest-gather-strings-from-list
 				    (funcall imenu-create-index-function))
 				   #'string-lessp))
 	       (expected-items (sort (copy-sequence ,expected-items) #'string-lessp)))
-	   (should (equal result-items expected-items))
-	   )))))
+           (should (equal result-items expected-items)))))))
 
 (imenu-simple-scan-deftest sh "Test imenu expression for sh-mode." sh-mode "a()
 {
@@ -82,6 +81,16 @@ function ABC_D()
 {
 }
 " '("a" "b" "c" "ABC_D"))
+
+(ert-deftest imenu--sort-by-position-pairs ()
+  (should (imenu--sort-by-position '("a" . 2) '("a" . 3)))
+  (should-not (imenu--sort-by-position '("a" . 3) '("a" . 2))))
+
+;; Regression test for bug#26457: 25.2; Cannot pass a function to
+;; imenu-generic-expression
+(ert-deftest imenu--sort-by-position-list ()
+  (should (imenu--sort-by-position '("a" 2 nil) '("a" 3 nil)))
+  (should-not (imenu--sort-by-position '("a" 3 nil) '("a" 2 nil))))
 
 (provide 'imenu-tests)
 

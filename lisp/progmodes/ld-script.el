@@ -1,8 +1,8 @@
-;;; ld-script.el --- GNU linker script editing mode for Emacs
+;;; ld-script.el --- GNU linker script editing mode for Emacs  -*- lexical-binding:t -*-
 
-;; Copyright (C) 2001-2017 Free Software Foundation, Inc.
+;; Copyright (C) 2001-2023 Free Software Foundation, Inc.
 
-;; Author: Masatake YAMATO<jet@gyve.org>
+;; Author: Masatake YAMATO <yamato@redhat.com>
 ;; Keywords: languages, faces
 
 ;; This file is part of GNU Emacs.
@@ -18,7 +18,7 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -35,8 +35,7 @@
 (defvar ld-script-location-counter-face 'ld-script-location-counter)
 (defface ld-script-location-counter
   '((t :weight bold :inherit font-lock-builtin-face))
-  "Face for location counter in GNU ld script."
-  :group 'ld-script)
+  "Face for location counter in GNU ld script.")
 
 ;; Syntax rules
 (defvar ld-script-mode-syntax-table
@@ -85,10 +84,12 @@
     ;; 3.4.5 Other Linker Script Commands
     "ASSERT" "EXTERN" "FORCE_COMMON_ALLOCATION"
     "INHIBIT_COMMON_ALLOCATION" "INSERT" "AFTER" "BEFORE"
-    "NOCROSSREFS" "OUTPUT_ARCH" "LD_FEATURE"
-    ;; 3.5.2 PROVIDE
+    "NOCROSSREFS" "NOCROSSREFS_TO" "OUTPUT_ARCH" "LD_FEATURE"
+    ;; 3.5.2 HIDDEN
+    "HIDDEN"
+    ;; 3.5.3 PROVIDE
     "PROVIDE"
-    ;; 3.5.3 PROVIDE_HIDDEN
+    ;; 3.5.4 PROVIDE_HIDDEN
     "PROVIDE_HIDDEN"
     ;; 3.6 SECTIONS Command
     "SECTIONS"
@@ -142,6 +143,7 @@
     "DEFINED"
     "LENGTH" "len" "l"
     "LOADADDR"
+    "LOG2CEIL"
     "MAX"
     "MIN"
     "NEXT"
@@ -165,15 +167,14 @@
      ("\\W\\(\\.\\)\\W" 1 ld-script-location-counter-face)
      )
    cpp-font-lock-keywords)
-  "Default font-lock-keywords for `ld-script-mode'.")
+  "Default `font-lock-keywords' for `ld-script-mode'.")
 
 ;;;###autoload
 (define-derived-mode ld-script-mode prog-mode "LD-Script"
-   "A major mode to edit GNU ld script files"
-  (set (make-local-variable 'comment-start) "/* ")
-  (set (make-local-variable 'comment-end)   " */")
-  (set (make-local-variable 'font-lock-defaults)
-       '(ld-script-font-lock-keywords nil)))
+   "A major mode to edit GNU ld script files."
+  (setq-local comment-start "/* ")
+  (setq-local comment-end   " */")
+  (setq-local font-lock-defaults '(ld-script-font-lock-keywords nil)))
 
 (provide 'ld-script)
 

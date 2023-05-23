@@ -1,6 +1,6 @@
-;;; ede/dired.el --- EDE extensions to dired.
+;;; ede/dired.el --- EDE extensions to dired.  -*- lexical-binding: t -*-
 
-;; Copyright (C) 1998-2000, 2003, 2009-2017 Free Software Foundation,
+;; Copyright (C) 1998-2000, 2003, 2009-2023 Free Software Foundation,
 ;; Inc.
 
 ;; Author: Eric M. Ludlam <zappo@gnu.org>
@@ -20,26 +20,26 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 ;;
 ;; This provides a dired interface to EDE, allowing users to modify
 ;; their project file by adding files (or whatever) directly from a
 ;; dired buffer.
-(eval-when-compile (require 'cl))
-(require 'easymenu)
+
+;;; Code:
+
 (require 'dired)
 (require 'ede)
 
-;;; Code:
 (defvar ede-dired-keymap
   (let ((map (make-sparse-keymap)))
-    (define-key map ".a" 'ede-dired-add-to-target)
-    (define-key map ".t" 'ede-new-target)
-    (define-key map ".s" 'ede-speedbar)
-    (define-key map ".C" 'ede-compile-project)
-    (define-key map ".d" 'ede-make-dist)
+    (define-key map ".a" #'ede-dired-add-to-target)
+    (define-key map ".t" #'ede-new-target)
+    (define-key map ".s" #'ede-speedbar)
+    (define-key map ".C" #'ede-compile-project)
+    (define-key map ".d" #'ede-make-dist)
 
     (easy-menu-define
       ede-dired-menu map "EDE Dired Minor Mode Menu"
@@ -58,9 +58,7 @@
 
 ;;;###autoload
 (define-minor-mode ede-dired-minor-mode
-  "A minor mode that should only be activated in DIRED buffers.
-If ARG is nil or a positive number, force on, if
-negative, force off."
+  "A minor mode that should only be activated in DIRED buffers."
   :lighter " EDE" :keymap ede-dired-keymap
   (unless (derived-mode-p 'dired-mode)
     (setq ede-dired-minor-mode nil)

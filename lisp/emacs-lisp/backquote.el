@@ -1,6 +1,6 @@
-;;; backquote.el --- implement the ` Lisp construct
+;;; backquote.el --- implement the ` Lisp construct  -*- lexical-binding: t -*-
 
-;; Copyright (C) 1990, 1992, 1994, 2001-2017 Free Software Foundation,
+;; Copyright (C) 1990, 1992, 1994, 2001-2023 Free Software Foundation,
 ;; Inc.
 
 ;; Author: Rick Sladkey <jrs@world.std.com>
@@ -21,7 +21,7 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -103,7 +103,10 @@ b              => (ba bb bc)		; assume b has this value
 \\=`(a ,b c)      => (a (ba bb bc) c)	; insert the value of b
 \\=`(a ,@b c)     => (a ba bb bc c)	; splice in the value of b
 
-Vectors work just like lists.  Nested backquotes are permitted."
+Vectors work just like lists.  Nested backquotes are permitted.
+
+Note that some macros, such as `pcase', use this symbol for other
+purposes."
   (cdr (backquote-process structure)))
 
 ;; GNU Emacs has no reader macros

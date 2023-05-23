@@ -1,6 +1,6 @@
-;;; whiteboard-theme.el --- Custom theme for faces
+;;; whiteboard-theme.el --- Custom theme for faces  -*- lexical-binding:t -*-
 
-;; Copyright (C) 2011-2017 Free Software Foundation, Inc.
+;; Copyright (C) 2011-2023 Free Software Foundation, Inc.
 
 ;; Author: Scott Frazer <frazer.scott@gmail.com>
 
@@ -17,12 +17,15 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Code:
 
+;;;###theme-autoload
 (deftheme whiteboard
-  "Face colors similar to markers on a whiteboard.")
+  "Face colors similar to markers on a whiteboard."
+  :background-mode 'light
+  :kind 'color-scheme)
 
 (let ((class '((class color) (min-colors 89))))
   (custom-theme-set-faces
@@ -48,7 +51,6 @@
    `(font-lock-comment-face ((,class (:foreground "gray50"))))
    `(font-lock-constant-face ((,class (:foreground "DarkOliveGreen4"))))
    `(font-lock-doc-face ((,class (:foreground "peru"))))
-   `(font-lock-doc-string-face ((,class (:foreground "peru"))))
    `(font-lock-function-name-face ((,class (:foreground "goldenrod3"))))
    `(font-lock-keyword-face ((,class (:foreground "DodgerBlue2"))))
    `(font-lock-preprocessor-face ((,class (:foreground "gold3"))))
@@ -64,6 +66,8 @@
    `(ido-first-match ((,class (:weight normal :foreground "DarkOrange3"))))
    `(ido-only-match ((,class (:foreground "SeaGreen4"))))
    `(ido-subdir ((,class (:foreground nil :inherit font-lock-keyword-face))))
+   `(image-dired-thumb-flagged ((,class :background "Red1")))
+   `(image-dired-thumb-mark ((,class :background "dodgerblue3")))
    `(info-header-node ((,class (:foreground "DeepSkyBlue1"))))
    `(info-header-xref ((,class (:foreground "SeaGreen2"))))
    `(info-menu-header ((,class (:family "helv" :weight bold))))
@@ -83,15 +87,21 @@
    `(outline-4 ((,class (:foreground "RoyalBlue"))))
    `(outline-5 ((,class (:foreground "DeepSkyBlue"))))
    `(primary-selection ((,class (:background "blue3"))))
+   `(realgud-overlay-arrow1  ((,class (:foreground "DarkGreen"))))
+   `(realgud-overlay-arrow2  ((,class (:foreground "DarkOliveGreen"))))
+   `(realgud-overlay-arrow3  ((,class (:foreground "gray60"))))
+   `(realgud-bp-disabled-face      ((,class (:foreground "gray60"))))
+   `(realgud-bp-line-enabled-face  ((,class (:underline "red"))))
+   `(realgud-bp-line-disabled-face ((,class (:underline "gray60"))))
+   `(realgud-file-name             ((,class :foreground "DarkGreen")))
+   `(realgud-line-number           ((,class :foreground "blue3")))
+   `(realgud-backtrace-number      ((,class :foreground "blue3" :weight bold)))
+
    `(region ((,class (:background "SkyBlue1"))))
    `(show-paren-match-face ((,class (:background "dodgerblue1" :foreground "white"))))
    `(show-paren-mismatch-face ((,class (:background "red1" :foreground "white"))))
    `(warning ((,class (:foreground "Yellow4"))))))
 
 (provide-theme 'whiteboard)
-
-;; Local Variables:
-;; no-byte-compile: t
-;; End:
 
 ;;; whiteboard-theme.el ends here

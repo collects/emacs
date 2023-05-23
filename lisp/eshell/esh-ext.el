@@ -1,6 +1,6 @@
 ;;; esh-ext.el --- commands external to Eshell  -*- lexical-binding:t -*-
 
-;; Copyright (C) 1999-2017 Free Software Foundation, Inc.
+;; Copyright (C) 1999-2023 Free Software Foundation, Inc.
 
 ;; Author: John Wiegley <johnw@gnu.org>
 
@@ -17,7 +17,7 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -31,14 +31,11 @@
 
 ;;; Code:
 
-(provide 'esh-ext)
-
 (require 'esh-util)
 
-(eval-when-compile
-  (require 'cl-lib)
-  (require 'esh-io)
-  (require 'esh-cmd))
+(eval-when-compile (require 'cl-lib))
+(require 'esh-io)
+(require 'esh-arg)
 (require 'esh-opt)
 
 (defgroup eshell-ext nil
@@ -77,12 +74,10 @@ but Eshell will be able to understand
   "Search the environment path for NAME."
   (if (file-name-absolute-p name)
       name
-    (let ((list (eshell-parse-colon-path eshell-path-env))
+    (let ((list (eshell-get-path))
 	  suffixes n1 n2 file)
-      (if (eshell-under-windows-p)
-          (push "." list))
       (while list
-	(setq n1 (concat (car list) name))
+	(setq n1 (file-name-concat (car list) name))
 	(setq suffixes eshell-binary-suffixes)
 	(while suffixes
 	  (setq n2 (concat n1 (car suffixes)))
@@ -115,7 +110,7 @@ wholly ignored."
 (autoload 'eshell-parse-command "esh-cmd")
 
 (defsubst eshell-invoke-batch-file (&rest args)
-  "Invoke a .BAT or .CMD file on DOS/Windows systems."
+  "Invoke a .BAT or .CMD file on MS-DOS/MS-Windows systems."
   ;; since CMD.EXE can't handle forward slashes in the initial
   ;; argument...
   (setcar args (subst-char-in-string ?/ ?\\ (car args)))
@@ -168,16 +163,16 @@ by the user on the command line."
 
 (defcustom eshell-explicit-command-char ?*
   "If this char occurs before a command name, call it externally.
-That is, although `vi' may be an alias, `\vi' will always call the
+That is, although `vi' may be an alias, `*vi' will always call the
 external version."
   :type 'character
   :group 'eshell-ext)
 
 ;;; Functions:
 
-(defun eshell-ext-initialize ()
+(defun eshell-ext-initialize ()     ;Called from `eshell-mode' via intern-soft!
   "Initialize the external command handling code."
-  (add-hook 'eshell-named-command-hook 'eshell-explicit-command nil t))
+  (add-hook 'eshell-named-command-hook #'eshell-explicit-command nil t))
 
 (defun eshell-explicit-command (command args)
   "If a command name begins with `*', call it externally always.
@@ -190,8 +185,6 @@ This bypasses all Lisp functions and aliases."
 	      (error "%s: external command failed" cmd))
 	(error "%s: external command not found"
 	       (substring command 1))))))
-
-(autoload 'eshell-close-handles "esh-io")
 
 (defun eshell-remote-command (command args)
   "Insert output from a remote COMMAND, using ARGS.
@@ -209,7 +202,7 @@ causing the user to wonder if anything's really going on..."
 	(progn
 	  (setq exitcode
 		(shell-command
-		 (mapconcat 'shell-quote-argument
+		 (mapconcat #'shell-quote-argument
 			    (append (list command) args) " ")
 		 outbuf errbuf))
 	  (eshell-print (with-current-buffer outbuf (buffer-string)))
@@ -220,7 +213,7 @@ causing the user to wonder if anything's really going on..."
 
 (defun eshell-external-command (command args)
   "Insert output from an external COMMAND, using ARGS."
-  (setq args (eshell-stringify-list (eshell-flatten-list args)))
+  (setq args (eshell-stringify-list (flatten-tree args)))
   (let ((interp (eshell-find-interpreter
 		 command
 		 args
@@ -233,6 +226,8 @@ causing the user to wonder if anything's really going on..."
     (cl-assert interp)
     (if (functionp (car interp))
 	(apply (car interp) (append (cdr interp) args))
+      (require 'esh-proc)
+      (declare-function eshell-gather-process-output "esh-proc" (command args))
       (eshell-gather-process-output
        (car interp) (append (cdr interp) args)))))
 
@@ -244,19 +239,19 @@ causing the user to wonder if anything's really going on..."
      (?h "help" nil nil  "display this usage message")
      :usage "[-b] PATH
 Adds the given PATH to $PATH.")
-   (if args
-       (progn
-	 (setq eshell-path-env (getenv "PATH")
-	       args (mapconcat 'identity args path-separator)
-	       eshell-path-env
-	       (if prepend
-		   (concat args path-separator eshell-path-env)
-		 (concat eshell-path-env path-separator args)))
-	 (setenv "PATH" eshell-path-env))
-     (dolist (dir (parse-colon-path (getenv "PATH")))
-       (eshell-printn dir)))))
+   (let ((path (eshell-get-path t)))
+     (if args
+         (progn
+           (setq path (if prepend
+                          (append args path)
+                        (append path args)))
+           (eshell-set-path path)
+           (string-join path (path-separator)))
+       (dolist (dir path)
+         (eshell-printn dir))))))
 
 (put 'eshell/addpath 'eshell-no-numeric-conversions t)
+(put 'eshell/addpath 'eshell-filename-arguments t)
 
 (defun eshell-script-interpreter (file)
   "Extract the script to run from FILE, if it has #!<interp> in it.
@@ -299,11 +294,13 @@ line of the form #!<interp>."
       (let ((fullname (if (file-name-directory file) file
 			(eshell-search-path file)))
 	    (suffixes eshell-binary-suffixes))
-	(if (and fullname
-		 (not (file-remote-p fullname))
-		 (file-remote-p default-directory))
-	    (setq fullname (expand-file-name
-			    (concat "./" fullname) default-directory)))
+	(when (and fullname
+                   (not (file-remote-p fullname))
+                   (file-remote-p default-directory))
+          (setq fullname
+                (if (file-name-absolute-p fullname)
+                    (concat (file-remote-p default-directory) fullname)
+                  (expand-file-name fullname default-directory))))
 	(if (and fullname (not (or eshell-force-execution
 				   (file-executable-p fullname))))
 	    (while suffixes
@@ -331,4 +328,5 @@ line of the form #!<interp>."
 			    (cdr interp)))))
 	  (or interp (list fullname)))))))
 
+(provide 'esh-ext)
 ;;; esh-ext.el ends here

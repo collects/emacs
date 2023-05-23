@@ -1,6 +1,6 @@
-;;; mail-utils.el --- utility functions used both by rmail and rnews
+;;; mail-utils.el --- utility functions used both by rmail and rnews  -*- lexical-binding: t -*-
 
-;; Copyright (C) 1985, 2001-2017 Free Software Foundation, Inc.
+;; Copyright (C) 1985, 2001-2023 Free Software Foundation, Inc.
 
 ;; Maintainer: emacs-devel@gnu.org
 ;; Keywords: mail, news
@@ -18,7 +18,7 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -29,7 +29,7 @@
 
 ;;;###autoload
 (defcustom mail-use-rfc822 nil
-  "If non-nil, use a full, hairy RFC822 parser on mail addresses.
+  "If non-nil, use a full, hairy RFC 822 (or later) parser on mail addresses.
 Otherwise, (the default) use a smaller, somewhat faster, and
 often correct parser."
   :type 'boolean
@@ -41,11 +41,12 @@ often correct parser."
 If this is nil, it is set the first time you compose a reply, to
 a value which excludes your own email address.
 
-Matching addresses are excluded from the CC field in replies, and
+Matching addresses are excluded from the Cc field in replies, and
 also the To field, unless this would leave an empty To field."
   :type '(choice regexp (const :tag "Your Name" nil))
   :group 'mail)
 
+(defvar epa-inhibit)
 ;; Returns t if file FILE is an Rmail file.
 ;;;###autoload
 (defun mail-file-babyl-p (file)
@@ -56,8 +57,9 @@ also the To field, unless this would leave an empty To field."
       (looking-at "BABYL OPTIONS:"))))
 
 (defun mail-string-delete (string start end)
-  "Returns a string containing all of STRING except the part
+  "Return a string containing all of STRING except the part
 from START (inclusive) to END (exclusive)."
+  (declare (obsolete substring "29.1"))
   (if (null end) (substring string 0 start)
     (concat (substring string 0 start)
 	    (substring string end nil))))
@@ -132,7 +134,7 @@ we expect to find and remove the wrapper characters =?ISO-8859-1?Q?....?=."
 				       (aref string (1+ (match-beginning 1))))))
 		      strings)))
 	(setq i (match-end 0)))
-      (apply 'concat (nreverse (cons (substring string i) strings))))))
+      (apply #'concat (nreverse (cons (substring string i) strings))))))
 
 ;; FIXME Gnus for some reason has `quoted-printable-decode-region' in qp.el.
 ;;;###autoload
@@ -192,7 +194,7 @@ Also delete leading/trailing whitespace and replace FOO <BAR> with just BAR.
 Return a modified address list."
   (when address
     (if mail-use-rfc822
-	(mapconcat 'identity (rfc822-addresses address) ", ")
+	(mapconcat #'identity (rfc822-addresses address) ", ")
       (let (pos)
 
         ;; Strip comments.
@@ -237,21 +239,8 @@ comma-separated list, and return the pruned list."
   ;; Or just set the default directly in the defcustom.
   (if (null mail-dont-reply-to-names)
       (setq mail-dont-reply-to-names
-	    (concat
-	     ;; `rmail-default-dont-reply-to-names' is obsolete.
-	     (if (bound-and-true-p rmail-default-dont-reply-to-names)
-		 (concat rmail-default-dont-reply-to-names "\\|")
-	       "")
-	     (if (and user-mail-address
-		      (not (equal user-mail-address user-login-name)))
-		 ;; Anchor the login name and email address so that we
-		 ;; don't match substrings: if the login name is
-		 ;; "foo", we shouldn't match "barfoo@baz.com".
-		 (concat "\\`"
-			 (regexp-quote user-mail-address)
-			 "\\'\\|")
-	       "")
-	     (concat "\\`" (regexp-quote user-login-name) "@"))))
+            (if (> (length user-mail-address) 0)
+                (concat "\\`" (regexp-quote user-mail-address) "\\'"))))
   ;; Split up DESTINATIONS and match each element separately.
   (let ((start-pos 0) (cur-pos 0)
 	(case-fold-search t))
@@ -259,7 +248,7 @@ comma-separated list, and return the pruned list."
       (setq cur-pos (string-match "[,\"]" destinations cur-pos))
       (if (and cur-pos (equal (match-string 0 destinations) "\""))
 	  ;; Search for matching quote.
-	  (let ((next-pos (string-match "\"" destinations (1+ cur-pos))))
+	  (let ((next-pos (string-search "\"" destinations (1+ cur-pos))))
 	    (if next-pos
 		(setq cur-pos (1+ next-pos))
 	      ;; If the open-quote has no close-quote,
@@ -271,7 +260,8 @@ comma-separated list, and return the pruned list."
 	      (setq cur-pos start-pos)))
 	(let* ((address (substring destinations start-pos cur-pos))
 	       (naked-address (mail-strip-quoted-names address)))
-	  (if (string-match mail-dont-reply-to-names naked-address)
+	  (if (and mail-dont-reply-to-names
+		   (string-match mail-dont-reply-to-names naked-address))
 	      (setq destinations (concat (substring destinations 0 start-pos)
 				    (and cur-pos (substring destinations
 							    (1+ cur-pos))))
@@ -287,16 +277,15 @@ comma-separated list, and return the pruned list."
       (substring destinations (match-end 0))
     destinations))
 
-;; Legacy name
-(define-obsolete-function-alias 'rmail-dont-reply-to 'mail-dont-reply-to "24.1")
-
 
 ;;;###autoload
-(defun mail-fetch-field (field-name &optional last all list)
+(defun mail-fetch-field (field-name &optional last all list delete)
   "Return the value of the header field whose type is FIELD-NAME.
 If second arg LAST is non-nil, use the last field of type FIELD-NAME.
 If third arg ALL is non-nil, concatenate all such fields with commas between.
 If 4th arg LIST is non-nil, return a list of all such fields.
+If 5th arg DELETE is non-nil, delete all header lines that are
+included in the result.
 The buffer should be narrowed to just the header, else false
 matches may be returned from the message body."
   (save-excursion
@@ -319,7 +308,9 @@ matches may be returned from the message body."
 		  (setq value (concat value
 				      (if (string= value "") "" ", ")
 				      (buffer-substring-no-properties
-				       opoint (point)))))))
+				       opoint (point)))))
+                (if delete
+                    (delete-region (line-beginning-position) (point)))))
 	    (if list
 		value
 	      (and (not (string= value "")) value)))
@@ -332,7 +323,11 @@ matches may be returned from the message body."
 		;; Back up over newline, then trailing spaces or tabs
 		(forward-char -1)
 		(skip-chars-backward " \t" opoint)
-		(buffer-substring-no-properties opoint (point)))))))))
+                (prog1
+                    (buffer-substring-no-properties opoint (point))
+                  (if delete
+                      (delete-region (line-beginning-position)
+                                     (1+ (point))))))))))))
 
 ;; Parse a list of tokens separated by commas.
 ;; It runs from point to the end of the visible part of the buffer.
@@ -367,19 +362,12 @@ matches may be returned from the message body."
   labels)
 
 (defun mail-rfc822-time-zone (time)
-  (let* ((sec (or (car (current-time-zone time)) 0))
-	 (absmin (/ (abs sec) 60)))
-    (format "%c%02d%02d" (if (< sec 0) ?- ?+) (/ absmin 60) (% absmin 60))))
+  (declare (obsolete format-time-string "29.1"))
+  (format-time-string "%z" time))
 
 (defun mail-rfc822-date ()
-  (let* ((time (current-time))
-	 (s (current-time-string time)))
-    (string-match "[^ ]+ +\\([^ ]+\\) +\\([^ ]+\\) \\([^ ]+\\) \\([^ ]+\\)" s)
-    (concat (substring s (match-beginning 2) (match-end 2)) " "
-	    (substring s (match-beginning 1) (match-end 1)) " "
-	    (substring s (match-beginning 4) (match-end 4)) " "
-	    (substring s (match-beginning 3) (match-end 3)) " "
-	    (mail-rfc822-time-zone time))))
+  (let ((system-time-locale "C"))
+    (format-time-string "%-d %b %Y %T %z")))
 
 (defun mail-mbox-from ()
   "Return an mbox \"From \" line for the current message.
@@ -392,7 +380,7 @@ The buffer should be narrowed to just the header."
 	 (date (mail-fetch-field "date"))
 	 ;; A From: header can contain multiple addresses, a "From "
 	 ;; line must contain only one.  (Bug#7760)
-	 ;; See eg RFC 5322, 3.6.2. Originator Fields.
+	 ;; See, e.g., RFC 5322, 3.6.2. Originator Fields.
 	 (end (string-match "[ \t]*[,\n]" from)))
     (format "From %s %s\n" (if end
 			       (substring from 0 end)

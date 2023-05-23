@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 ### update_autogen - update some auto-generated files in the Emacs tree
 
-## Copyright (C) 2011-2017 Free Software Foundation, Inc.
+## Copyright (C) 2011-2023 Free Software Foundation, Inc.
 
 ## Author: Glenn Morris <rgm@gnu.org>
+## Maintainer: Stefan Kangas <stefankangas@gmail.com>
 
 ## This file is part of GNU Emacs.
 
@@ -18,7 +19,7 @@
 ## GNU General Public License for more details.
 
 ## You should have received a copy of the GNU General Public License
-## along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+## along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ### Commentary:
 
@@ -31,35 +32,19 @@
 
 ### Code:
 
-die ()                 # write error to stderr and exit
-{
-    [ $# -gt 0 ] && echo "$PN: $@" >&2
-    exit 1
-}
-
-PN=${0##*/}                     # basename of script
-PD=${0%/*}
-
-[ "$PD" = "$0" ] && PD=.        # if PATH includes PWD
+source "${0%/*}/emacs-shell-lib"
 
 ## This should be the admin directory.
-cd $PD
+cd $PD || exit
 cd ../
 [ -d admin ] || die "Could not locate admin directory"
 
-if [ -d .bzr ]; then
-    vcs=bzr
-elif [ -e .git ]; then
-    vcs=git
-else
-    die "Cannot determine vcs"
-fi
-
+[ -d .git ] || git rev-parse --git-dir > /dev/null 2>&1 || die "Not in a git repository"
 
 usage ()
 {
     cat 1>&2 <<EOF
-Usage: ${PN} [-f] [-c] [-q] [-A dir] [-I] [-L] [-C] [-- make-flags]
+Usage: ${PN} [-f] [-c] [-q] [-A dir] [-L] [-C] [-- make-flags]
 Update some auto-generated files in the Emacs tree.
 By default, only does the versioned loaddefs-like files in lisp/.
 This requires a build.  Passes any non-option args to make (eg -- -j2).
@@ -69,8 +54,6 @@ Options:
     commit them (caution).
 -q: be quiet; only give error messages, not status messages.
 -A: only update autotools files, copying into specified dir.
--H: also update ChangeLog.${changelog_n}
--I: also update info/dir.
 -L: also update ldefs-boot.el.
 -C: start from a clean state.  Slower, but more correct.
 EOF
@@ -87,37 +70,30 @@ clean=
 autogendir=                     # was "autogen"
 ldefs_flag=1
 lboot_flag=
-info_flag=
-changelog_flag=
 
 ## Parameters.
-ldefs_in=lisp/loaddefs.el
-ldefs_boot=lisp/ldefs-boot.el
-changelog_n=$(sed -n 's/CHANGELOG_HISTORY_INDEX_MAX *= *//p' Makefile.in)
-changelog_files="ChangeLog.$changelog_n"
+ldefs_out=lisp/ldefs-boot.el
 sources="configure.ac lib/Makefile.am"
 ## Files to copy into autogendir.
 ## Everything:
 genfiles="
-  configure aclocal.m4 src/config.in lib/Makefile.in
-  build-aux/compile build-aux/config.guess build-aux/config.sub
-  build-aux/depcomp build-aux/install-sh build-aux/missing
+  configure aclocal.m4 src/config.in
+  build-aux/config.guess build-aux/config.sub
+  build-aux/install-sh
 "
 ## msdos-only:
-genfiles="src/config.in lib/Makefile.in"
+genfiles="src/config.in"
 
+basegen=""
 for g in $genfiles; do
     basegen="$basegen ${g##*/}"
 done
 
 [ "$basegen" ] || die "internal error"
 
-tempfile=/tmp/$PN.$$
+tempfile="$(emacs_mktemp)"
 
-trap "rm -f $tempfile 2> /dev/null" EXIT
-
-
-while getopts ":hcfqA:HCIL" option ; do
+while getopts ":hcfqA:CL" option ; do
     case $option in
         (h) usage ;;
 
@@ -132,10 +108,6 @@ while getopts ":hcfqA:HCIL" option ; do
             ;;
 
         (C) clean=1 ;;
-
-        (H) changelog_flag=1 ;;
-
-        (I) info_flag=1 ;;
 
         (L) lboot_flag=1 ;;
 
@@ -157,13 +129,11 @@ OPTIND=1
 ## Run status on inputs, list modified files on stdout.
 status ()
 {
-    local statflag="-S"
-    [ "$vcs" = "git" ] && statflag="-s"
-
-    $vcs status $statflag "$@" >| $tempfile || die "$vcs status error for $@"
+    git status -s "$@" >| $tempfile || die "git status error for $@"
 
     local stat file modified
 
+    modified=""
     while read stat file; do
 
         [ "$stat" != "M" ] && \
@@ -181,7 +151,7 @@ status ()
 echo "Checking input file status..."
 
 ## The lisp portion could be more permissive, eg only care about .el files.
-modified=$(status ${autogendir:+$sources} ${ldefs_flag:+lisp} ${info_flag:+doc}) || die
+modified=$(status ${autogendir:+$sources} ${ldefs_flag:+lisp}) || die
 
 [ "$modified" ] && {
     echo "Locally modified: $modified"
@@ -196,8 +166,6 @@ modified=$(status ${autogendir:+$sources} ${ldefs_flag:+lisp} ${info_flag:+doc})
     echo "Running 'make maintainer-clean'..."
 
     make maintainer-clean #|| die "Cleaning error"
-
-    rm -f $ldefs_in
 }
 
 
@@ -234,74 +202,17 @@ commit ()
 
     echo "Committing..."
 
-    $vcs commit -m "; Auto-commit of $type files." "$@" || return $?
+    git commit -m "; Auto-commit of $type files." "$@" || return $?
 
-    [ "$vcs" = "git" ] && {
-        $vcs push || return $?
-    }
+    ## In case someone else pushed something while we were working.
+    git pull --rebase || return $?
+    git push || return $?
 
     echo "Committed files: $@"
 }                               # function commit
 
 
-## No longer used since info/dir is now generated at install time if needed,
-## and is not in the repository any more.
-info_dir ()
-{
-    local basefile=build-aux/dir_top outfile=info/dir
-
-    echo "Regenerating info/dir..."
-
-    ## Header contains non-printing characters, so this is more
-    ## reliable than using echo.
-    rm -f $outfile
-    cp $basefile $outfile
-
-    local topic file dircat dirent
-
-    ## FIXME inefficient looping.
-    for topic in "Texinfo documentation system" "Emacs" "GNU Emacs Lisp" \
-        "Emacs editing modes" "Emacs network features" "Emacs misc features" \
-        "Emacs lisp libraries"; do
-
-        cat - <<EOF >> $outfile
-
-$topic
-EOF
-        ## Bit faster than doc/*/*.texi.
-        for file in doc/emacs/emacs.texi doc/lispintro/*.texi \
-            doc/lispref/elisp.texi doc/misc/*.texi; do
-
-            ## FIXME do not ignore w32 if OS is w32.
-            case $file in
-                *-xtra.texi|*efaq-w32.texi) continue ;;
-            esac
-
-            dircat=$(sed -n -e 's/@value{emacsname}/Emacs/' -e 's/^@dircategory //p' $file)
-
-            ## TODO warn about unknown topics (check-info in top-level
-            ## Makefile does this).
-            [ "$dircat" = "$topic" ] || continue
-
-            sed -n -e 's/@value{emacsname}/Emacs/' \
-                -e 's/@acronym{\([A-Z]*\)}/\1/' \
-                -e '/^@direntry/,/^@end direntry/ s/^\([^@]\)/\1/p' \
-                $file >> $outfile
-
-        done
-    done
-
-    local modified
-
-    modified=$(status $outfile) || die
-
-    commit "info/dir" $modified || die "commit error"
-}                               # function info_dir
-
-
 [ "$autogendir" ] && {
-
-    oldpwd=$PWD
 
     cp $genfiles $autogendir/
 
@@ -317,16 +228,13 @@ EOF
 }                               # $autogendir
 
 
-[ "$info_flag" ] && info_dir
-
-
 [ "$ldefs_flag" ] || exit 0
 
 
 echo "Finding loaddef targets..."
 
 find lisp -name '*.el' -exec grep '^;.*generated-autoload-file:' {} + | \
-    sed -e '/loaddefs\|esh-groups/d' -e 's|/[^/]*: "|/|' -e 's/"//g' \
+    sed -e '/loaddefs\|esh-groups/d' -e 's|/[^/]*: "|/|' -e 's/"//g'    \
     >| $tempfile || die "Error finding targets"
 
 genfiles=
@@ -368,35 +276,25 @@ make -C src "$@" bootstrap-emacs || die "make src error"
 
 echo "Running lisp/ make..."
 
-make -C lisp "$@" autoloads EMACS=../src/bootstrap-emacs || die "make src error"
+make -C lisp "$@" ldefs-boot.el EMACS=../src/bootstrap-emacs || die "make src error"
+
+
+# Refresh the prebuilt grammar-wy.el
+grammar_in=lisp/cedet/semantic/grammar-wy.el
+grammar_out=lisp/cedet/semantic/grm-wy-boot.el
+make -C admin/grammars/ ../../$grammar_in EMACS=../../src/bootstrap-emacs
+cp $grammar_in $grammar_out || die "cp grm_wy_boot error"
+
 
 echo "Checking status of loaddef files..."
 
 ## It probably would be fine to just check+commit lisp/, since
 ## making autoloads should not effect any other files.  But better
 ## safe than sorry.
-modified=$(status $genfiles) || die
+modified=$(status $genfiles $ldefs_out $grammar_out) || die
 
 
 commit "loaddefs" $modified || die "commit error"
 
 
-## Less important than the other stuff, so do it last.
-[ ! "$changelog_flag" ] || {
-    make change-history-nocommit || die "make change-history error"
-    modified=$(status $changelog_files) || die
-    commit "ChangeLog" $modified || die "commit error"
-}
-
-
-
-## Regenerate ldefs-boot if we are told to
-[ ! "$lboot_flag" ] || {
-   make generate-ldefs-boot || die
-   modified=$(status $ldefs_boot) || die
-   commit $ldefs_boot $modified || die "commit error"
-}
-
 exit 0
-
-### update_autogen ends here

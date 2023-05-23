@@ -1,6 +1,6 @@
-;;; calc-sel.el --- data selection functions for Calc
+;;; calc-sel.el --- data selection functions for Calc  -*- lexical-binding:t -*-
 
-;; Copyright (C) 1990-1993, 2001-2017 Free Software Foundation, Inc.
+;; Copyright (C) 1990-1993, 2001-2023 Free Software Foundation, Inc.
 
 ;; Author: David Gillespie <daveg@synaptics.com>
 
@@ -17,7 +17,7 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -140,13 +140,14 @@
 	 (calc-change-current-selection sel)
        (error "%d is not a valid sub-formula index" num)))))
 
-;; The variables calc-fnp-op and calc-fnp-num are local to 
-;; calc-find-nth-part (and calc-select-previous) but used by 
+;; The variables calc-fnp-op and calc-fnp-num are local to
+;; calc-find-nth-part (and calc-select-previous) but used by
 ;; calc-find-nth-part-rec, which is called by them.
 (defvar calc-fnp-op)
 (defvar calc-fnp-num)
 
-(defun calc-find-nth-part (expr calc-fnp-num)
+(defun calc-find-nth-part (expr fnp-num)
+  (let ((calc-fnp-num fnp-num))
   (if (and calc-assoc-selections
 	   (assq (car-safe expr) calc-assoc-ops))
       (let (calc-fnp-op)
@@ -154,7 +155,7 @@
     (if (eq (car-safe expr) 'intv)
 	(and (>= calc-fnp-num 1) (<= calc-fnp-num 2) (nth (1+ calc-fnp-num) expr))
       (and (not (Math-primp expr)) (>= calc-fnp-num 1) (< calc-fnp-num (length expr))
-	   (nth calc-fnp-num expr)))))
+	   (nth calc-fnp-num expr))))))
 
 (defun calc-find-nth-part-rec (expr)   ; uses num, op
   (or (if (and (setq calc-fnp-op (assq (car-safe (nth 1 expr)) calc-assoc-ops))
@@ -381,7 +382,7 @@
   ;; (if (or (< num 1) (> num (calc-stack-size)))
   ;;     (error "Cursor must be positioned on a stack element"))
   (let* ((entry (calc-top num 'entry))
-	 ww w)
+	 ) ;; ww w
     (or (equal entry calc-selection-cache-entry)
 	(progn
 	  (setcar entry (calc-encase-atoms (car entry)))
@@ -418,6 +419,7 @@
 ;; The variable math-comp-sel-tag is local to calc-find-selected-part,
 ;; but is used by math-comp-sel-flat-term and math-comp-add-string-sel
 ;; in calccomp.el, which are called (indirectly) by calc-find-selected-part.
+(defvar math-comp-sel-tag)
 
 (defun calc-find-selected-part ()
   (let* ((math-comp-sel-hpos (- (current-column) calc-selection-cache-offset))
@@ -436,7 +438,8 @@
 						   (current-indentation))
 					 lcount (1+ lcount)))
 				 (- lcount (math-comp-ascent
-					    calc-selection-cache-comp) -1))))
+					    calc-selection-cache-comp)
+				    -1))))
 	 (math-comp-sel-cpos (- (point) toppt calc-selection-cache-offset
 				spaces lcount))
 	 (math-comp-sel-tag nil))
@@ -481,9 +484,10 @@
 (defvar calc-rsf-old)
 (defvar calc-rsf-new)
 
-(defun calc-replace-sub-formula (expr calc-rsf-old calc-rsf-new)
-  (setq calc-rsf-new (calc-encase-atoms calc-rsf-new))
-  (calc-replace-sub-formula-rec expr))
+(defun calc-replace-sub-formula (expr rsf-old rsf-new)
+  (let ((calc-rsf-old rsf-old)
+        (calc-rsf-new (calc-encase-atoms rsf-new)))
+    (calc-replace-sub-formula-rec expr)))
 
 (defun calc-replace-sub-formula-rec (expr)
   (cond ((eq expr calc-rsf-old) calc-rsf-new)
@@ -650,7 +654,7 @@
 	  alg)
      (let ((calc-dollar-values (list sel))
 	   (calc-dollar-used 0))
-       (setq alg (calc-do-alg-entry "" "Replace selection with: " nil 
+       (setq alg (calc-do-alg-entry "" "Replace selection with: " nil
                                     'calc-selection-history))
        (and alg
 	    (progn
@@ -671,12 +675,12 @@
 	  (entry (calc-top num 'entry))
 	  (expr (car entry))
 	  (sel (or (calc-auto-selection entry) expr))
-	  alg)
-     (let ((str (math-showing-full-precision
-		 (math-format-nice-expr sel (frame-width)))))
-       (calc-edit-mode (list 'calc-finish-selection-edit
-			     num (list 'quote sel) calc-sel-reselect))
-       (insert str "\n"))))
+	  ;; alg
+	  (str (math-showing-full-precision
+		(math-format-nice-expr sel (frame-width))))
+	  (csr calc-sel-reselect))
+     (calc--edit-mode (lambda () (calc-finish-selection-edit num sel csr)))
+     (insert str "\n")))
   (calc-show-edit-buffer))
 
 (defvar calc-original-buffer)

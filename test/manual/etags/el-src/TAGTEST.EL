@@ -1,4 +1,7 @@
+;;;  -*- lexical-binding: t -*-
+
 (foo::defmumble bletch beuarghh)
+(defun foo==bar () (message "hi"))  ; Bug#5624
 ;;; Ctags test file for lisp mode.
 
 ;; from emacs/lisp/delsel.el:76:

@@ -1,9 +1,9 @@
-;;; erc-netsplit.el --- Reduce JOIN/QUIT messages on netsplits
+;;; erc-netsplit.el --- Reduce JOIN/QUIT messages on netsplits  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2002-2004, 2006-2017 Free Software Foundation, Inc.
+;; Copyright (C) 2002-2004, 2006-2023 Free Software Foundation, Inc.
 
 ;; Author: Mario Lang <mlang@delysid.org>
-;; Maintainer: emacs-devel@gnu.org
+;; Maintainer: Amin Bandali <bandali@gnu.org>, F. Jason Park <jp@neverwas.me>
 ;; Keywords: comm
 
 ;; This file is part of GNU Emacs.
@@ -19,7 +19,7 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -33,40 +33,35 @@
 (require 'erc)
 
 (defgroup erc-netsplit nil
-  "Netsplit detection tries to automatically figure when a
-netsplit happens, and filters the QUIT messages. It also keeps
-track of netsplits, so that it can filter the JOIN messages on a netjoin too."
+  "Netsplit detection tries to automatically figure when a netsplit
+happens, and filters the QUIT messages.  It also keeps track of
+netsplits, so that it can filter the JOIN messages on a netjoin too."
   :group 'erc)
 
-;;;###autoload (autoload 'erc-netsplit-mode "erc-netsplit")
+;;;###autoload(autoload 'erc-netsplit-mode "erc-netsplit")
 (define-erc-module netsplit nil
   "This mode hides quit/join messages if a netsplit occurs."
   ((erc-netsplit-install-message-catalogs)
-   (add-hook 'erc-server-JOIN-functions 'erc-netsplit-JOIN)
-   (add-hook 'erc-server-MODE-functions 'erc-netsplit-MODE)
-   (add-hook 'erc-server-QUIT-functions 'erc-netsplit-QUIT)
-   (add-hook 'erc-timer-hook 'erc-netsplit-timer))
-  ((remove-hook 'erc-server-JOIN-functions 'erc-netsplit-JOIN)
-   (remove-hook 'erc-server-MODE-functions 'erc-netsplit-MODE)
-   (remove-hook 'erc-server-QUIT-functions 'erc-netsplit-QUIT)
-   (remove-hook 'erc-timer-hook 'erc-netsplit-timer)))
+   (add-hook 'erc-server-JOIN-functions #'erc-netsplit-JOIN)
+   (add-hook 'erc-server-MODE-functions #'erc-netsplit-MODE)
+   (add-hook 'erc-server-QUIT-functions #'erc-netsplit-QUIT)
+   (add-hook 'erc-timer-hook #'erc-netsplit-timer))
+  ((remove-hook 'erc-server-JOIN-functions #'erc-netsplit-JOIN)
+   (remove-hook 'erc-server-MODE-functions #'erc-netsplit-MODE)
+   (remove-hook 'erc-server-QUIT-functions #'erc-netsplit-QUIT)
+   (remove-hook 'erc-timer-hook #'erc-netsplit-timer)))
 
 (defcustom erc-netsplit-show-server-mode-changes-flag nil
-  "Set to t to enable display of server mode changes."
-  :group 'erc-netsplit
+  "Non-nil means to enable display of server mode changes."
   :type 'boolean)
 
 (defcustom erc-netsplit-debug nil
-  "If non-nil, debug messages will be shown in the
-sever buffer."
-  :group 'erc-netsplit
+  "If non-nil, debug messages will be shown in the sever buffer."
   :type 'boolean)
 
 (defcustom erc-netsplit-regexp
   "^[^ @!\"\n]+\\.[^ @!\n]+ [^ @!\n]+\\.[^ @!\"\n]+$"
-  "This regular expression should match quit reasons produced
-by netsplits."
-  :group 'erc-netsplit
+  "This regular expression should match quit reasons produced by netsplits."
   :type 'regexp)
 
 (defcustom erc-netsplit-hook nil
@@ -83,12 +78,11 @@ Args: PROC is the process the netjoin originated from and
   :group 'erc-hooks
   :type 'hook)
 
-(defvar erc-netsplit-list nil
+(defvar-local erc-netsplit-list nil
   "This is a list of the form
 \((\"a.b.c.d e.f.g\" TIMESTAMP FIRST-JOIN \"nick1\" ... \"nickn\") ...)
 where FIRST-JOIN is t or nil, depending on whether or not the first
 join from that split has been detected or not.")
-(make-variable-buffer-local 'erc-netsplit-list)
 
 (defun erc-netsplit-install-message-catalogs ()
   (erc-define-catalog
@@ -123,7 +117,9 @@ join from that split has been detected or not.")
 		   parsed 'notice (process-buffer proc)
 		   'netjoin-done ?s (car elt))
 		  (setq erc-netsplit-list (delq elt erc-netsplit-list)))
-	      (delete nick elt))
+              ;; Avoid `ignored-return-value' warning for `delete'.
+              (let ((tail (nthcdr 2 elt))) ; (t n1 ... nN)
+                (setcdr tail (delete nick (cdr tail)))))
 	    (setq no-next-hook t))))
     no-next-hook))
 
@@ -151,7 +147,7 @@ join from that split has been detected or not.")
 	    (when (nth 2 ass)
 	      ;; There was already a netjoin for this netsplit, it
 	      ;; seems like the old one didn't get finished...
-	      (erc-display-message 
+	      (erc-display-message
 	       parsed 'notice (process-buffer proc)
 	       'netsplit ?s split)
 	      (setcar (nthcdr 2 ass) t)
@@ -192,20 +188,18 @@ join from that split has been detected or not.")
 	(erc-display-message
 	 nil 'notice 'active
 	 'netsplit-wholeft ?s (car elt)
-	 ?n (mapconcat 'erc-extract-nick (nthcdr 3 elt) " ")
+	 ?n (mapconcat #'erc-extract-nick (nthcdr 3 elt) " ")
 	 ?t (if (nth 2 elt)
 		"(joining)"
 	      "")))))
   t)
 
-(defalias 'erc-cmd-WL 'erc-cmd-WHOLEFT)
+(defalias 'erc-cmd-WL #'erc-cmd-WHOLEFT)
 
 (provide 'erc-netsplit)
 
 ;;; erc-netsplit.el ends here
 ;;
 ;; Local Variables:
-;; indent-tabs-mode: t
-;; tab-width: 8
+;; generated-autoload-file: "erc-loaddefs.el"
 ;; End:
-

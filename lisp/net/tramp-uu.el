@@ -1,8 +1,9 @@
-;;; tramp-uu.el --- uuencode in Lisp
+;;; tramp-uu.el --- uuencode in Lisp  -*- lexical-binding:t -*-
 
-;; Copyright (C) 2002-2017 Free Software Foundation, Inc.
+;; Copyright (C) 2002-2023 Free Software Foundation, Inc.
 
 ;; Author: Kai Großjohann <kai.grossjohann@gmx.net>
+;; Maintainer: Michael Albinus <michael.albinus@gmx.de>
 ;; Keywords: comm, terminals
 ;; Package: tramp
 
@@ -19,12 +20,12 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
 ;; An implementation of "uuencode" in Lisp.  Uses the function
-;; base64-encode-region which is built-in to modern Emacsen.
+;; base64-encode-region which is built-in to modern Emacs.
 
 ;;; Code:
 
@@ -93,8 +94,3 @@
 (provide 'tramp-uu)
 
 ;;; tramp-uu.el ends here
-
-;; Local Variables:
-;; mode: Emacs-Lisp
-;; coding: utf-8
-;; End:

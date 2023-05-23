@@ -1,6 +1,6 @@
 /* update-game-score.c --- Update a score file
 
-Copyright (C) 2002-2017 Free Software Foundation, Inc.
+Copyright (C) 2002-2023 Free Software Foundation, Inc.
 
 Author: Colin Walters <walters@debian.org>
 
@@ -17,7 +17,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
+along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.  */
 
 
 /* This program allows a game to securely and atomically update a
@@ -39,13 +39,14 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 #include <limits.h>
 #include <string.h>
 #include <stdlib.h>
-#include <stdio.h>
 #include <time.h>
 #include <pwd.h>
 #include <ctype.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <getopt.h>
+
+#include <unlocked-io.h>
 
 #ifdef WINDOWSNT
 #include "ntlib.h"
@@ -184,8 +185,6 @@ main (int argc, char **argv)
   ptrdiff_t scorecount, scorealloc;
   ptrdiff_t max_scores = MAX_SCORES;
 
-  srand (time (0));
-
   while ((c = getopt (argc, argv, "hrm:d:")) != -1)
     switch (c)
       {
@@ -239,7 +238,7 @@ main (int argc, char **argv)
   if (! user)
     lose_syserr ("Couldn't determine user id");
   data = argv[optind + 2];
-  if (strlen (data) > MAX_DATA_LEN)
+  if (strnlen (data, MAX_DATA_LEN + 1) == MAX_DATA_LEN + 1)
     data[MAX_DATA_LEN] = '\0';
   nl = strchr (data, '\n');
   if (nl)
@@ -484,8 +483,8 @@ lock_file (const char *filename, void **state)
 	    return -1;
 	  attempts = 0;
 	}
-
-      sleep ((rand () & 1) + 1);
+      else
+	sleep (1);
     }
 
   close (fd);
@@ -498,9 +497,9 @@ unlock_file (const char *filename, void *state)
   char *lockpath = (char *) state;
   int saved_errno = errno;
   int ret = unlink (lockpath);
-  int unlink_errno = errno;
+  if (0 <= ret)
+    errno = saved_errno;
   free (lockpath);
-  errno = ret < 0 ? unlink_errno : saved_errno;
   return ret;
 }
 

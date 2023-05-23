@@ -1,6 +1,6 @@
-;;; calc-funcs.el --- well-known functions for Calc
+;;; calc-funcs.el --- well-known functions for Calc  -*- lexical-binding:t -*-
 
-;; Copyright (C) 1990-1993, 2001-2017 Free Software Foundation, Inc.
+;; Copyright (C) 1990-1993, 2001-2023 Free Software Foundation, Inc.
 
 ;; Author: David Gillespie <daveg@synaptics.com>
 
@@ -17,7 +17,7 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -27,6 +27,7 @@
 
 (require 'calc-ext)
 (require 'calc-macs)
+(require 'cl-lib)
 
 (defun calc-inc-gamma (arg)
   (interactive "P")
@@ -177,7 +178,7 @@
 		       '(float 0 0)
 		       2)))))))
 
-(defun math-gamma-series (sum x xinvsqr oterm n)
+(defun math-gamma-series (sum x xinvsqr _oterm n)
   (math-working "gamma" sum)
   (let* ((bn (math-bernoulli-number n))
 	 (term (math-mul (math-div-float (math-float (nth 1 bn))
@@ -409,7 +410,7 @@
    ((and (math-num-integerp b)
 	 (if (math-negp b)
 	     (math-reject-arg b 'range)
-	   (Math-natnum-lessp (setq b (math-trunc b)) 20)))
+	   (< (setq b (math-trunc b)) 20)))
     (and calc-symbolic-mode (or (math-floatp a) (math-floatp b))
 	 (math-inexact-result))
     (math-mul
@@ -426,7 +427,7 @@
    ((and (math-num-integerp a)
 	 (if (math-negp a)
 	     (math-reject-arg a 'range)
-	   (Math-natnum-lessp (setq a (math-trunc a)) 20)))
+	   (< (setq a (math-trunc a)) 20)))
     (math-sub (or math-current-beta-value (calcFunc-beta a b))
 	      (calcFunc-betaB (math-sub 1 x) b a)))
    (t
@@ -525,7 +526,7 @@
 	       bj))
 	    (t
 	     (if (Math-lessp 100 v) (math-reject-arg v 'range))
-	     (let* ((j (logior (+ v (math-isqrt-small (* 40 v))) 1))
+	     (let* ((j (logior (+ v (cl-isqrt (* 40 v))) 1))
 		    (two-over-x (math-div 2 x))
 		    (jsum nil)
 		    (bjp '(float 0 0))
@@ -564,7 +565,7 @@
 	((Math-lessp '(float 8 0) (math-abs-approx x))
 	 (let* ((z (math-div '(float 8 0) x))
 		(y (math-sqr z))
-		(xx (math-add x 
+		(xx (math-add x
                               (math-read-number-simple "-0.785398164")))
 		(a1 (math-poly-eval y
                           (list
@@ -633,7 +634,7 @@
 	       (setq sc (cons (math-neg (cdr sc)) (car sc)))
 	     (if (math-negp x)
 		 (setq sc (cons (math-neg (car sc)) (math-neg (cdr sc))))))
-	   (math-mul (math-sqrt (math-div 
+	   (math-mul (math-sqrt (math-div
                                  (math-read-number-simple "0.636619722")
                                  x))
 		     (math-sub (math-mul (cdr sc) a1)
@@ -796,12 +797,11 @@
 	   (math-reduce-vec
 	    'math-add
 	    (cons 'vec
-		  (mapcar (function
-			   (lambda (c)
-			     (setq k (1+ k))
-			     (math-mul (math-mul fac c)
-				       (math-sub (math-pow x1 k)
-						 (math-pow x2 k)))))
+                  (mapcar (lambda (c)
+                            (setq k (1+ k))
+                            (math-mul (math-mul fac c)
+                                      (math-sub (math-pow x1 k)
+                                                (math-pow x2 k))))
 			  coefs)))
 	   x)))
     (math-mul (math-pow 2 n)
@@ -813,39 +813,39 @@
 
 (defvar math-bernoulli-b-cache
   (list
-   (list 'frac 
+   (list 'frac
          -174611
-         (math-read-number-simple "802857662698291200000"))
-   (list 'frac 
-         43867 
-         (math-read-number-simple "5109094217170944000"))
-   (list 'frac 
-         -3617 
-         (math-read-number-simple "10670622842880000"))
-   (list 'frac 
-         1 
-         (math-read-number-simple "74724249600"))
-   (list 'frac 
-         -691 
-         (math-read-number-simple "1307674368000"))
-   (list 'frac 
-         1 
-         (math-read-number-simple "47900160"))
-   (list 'frac 
-         -1 
-         (math-read-number-simple "1209600"))
-   (list 'frac 
-         1 
-         30240) 
-   (list 'frac 
-         -1 
+         802857662698291200000)
+   (list 'frac
+         43867
+         5109094217170944000)
+   (list 'frac
+         -3617
+         10670622842880000)
+   (list 'frac
+         1
+         74724249600)
+   (list 'frac
+         -691
+         1307674368000)
+   (list 'frac
+         1
+         47900160)
+   (list 'frac
+         -1
+         1209600)
+   (list 'frac
+         1
+         30240)
+   (list 'frac
+         -1
          720)
-   (list 'frac 
-         1 
-         12) 
+   (list 'frac
+         1
+         12)
    1 ))
 
-(defvar math-bernoulli-B-cache 
+(defvar math-bernoulli-B-cache
   '((frac -174611 330) (frac 43867 798)
     (frac -3617 510) (frac 7 6) (frac -691 2730)
     (frac 5 66) (frac -1 30) (frac 1 42)

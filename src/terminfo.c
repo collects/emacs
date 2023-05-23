@@ -1,5 +1,5 @@
 /* Interface from Emacs to terminfo.
-   Copyright (C) 1985-1986, 2001-2017 Free Software Foundation, Inc.
+   Copyright (C) 1985-1986, 2001-2023 Free Software Foundation, Inc.
 
 This file is part of GNU Emacs.
 
@@ -14,7 +14,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
+along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.  */
 
 #include <config.h>
 #include "tparam.h"
@@ -23,9 +23,12 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 
 /* Define these variables that serve as global parameters to termcap,
    so that we do not need to conditionalize the places in Emacs
-   that set them.  */
+   that set them.  But don't do that if terminfo defines them, as that
+   could cause link errors when using -fno-common.  */
 
+#ifndef TERMINFO_DEFINES_BC
 char *UP, *BC, PC;
+#endif
 
 /* Interface to curses/terminfo library.
    Turns out that all of the terminfo-level routines look

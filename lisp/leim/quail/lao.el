@@ -1,4 +1,4 @@
-;;; lao.el --- Quail package for inputting Lao characters  -*-coding: utf-8;-*-
+;;; lao.el --- Quail package for inputting Lao characters  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
 ;;   2006, 2007, 2008, 2009, 2010, 2011
@@ -20,7 +20,7 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -195,7 +195,7 @@ you need to re-load it to properly re-initialize related alists.")
 (quail-define-package
  "lao" "Lao" "ລ" t
  "Lao input method simulating Lao keyboard layout based on Thai TIS620"
- nil t t t t nil nil nil 'quail-lao-update-translation nil t)
+ nil t t t t nil nil nil #'quail-lao-update-translation nil t)
 
 (quail-install-map
  (quail-map-from-table

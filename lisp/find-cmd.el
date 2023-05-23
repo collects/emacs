@@ -1,6 +1,6 @@
-;;; find-cmd.el --- Build a valid find(1) command with sexps
+;;; find-cmd.el --- Build a valid find(1) command with sexps  -*- lexical-binding: t -*-
 
-;; Copyright (C) 2008-2017 Free Software Foundation, Inc.
+;; Copyright (C) 2008-2023 Free Software Foundation, Inc.
 
 ;; Author: Philip Jackson <phil@shellarchive.co.uk>
 ;; Version: 0.6
@@ -18,7 +18,7 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -28,7 +28,7 @@
 ;; (find-cmd '(prune (name ".svn" ".git" ".CVS"))
 ;;           '(and (or (name "*.pl" "*.pm" "*.t")
 ;;                     (mtime "+1"))
-;;                 (fstype "nfs" "ufs"))))
+;;                 (fstype "nfs" "ufs")))
 
 ;; will become (un-wrapped):
 

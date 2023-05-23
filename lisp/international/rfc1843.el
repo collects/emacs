@@ -1,6 +1,6 @@
-;;; rfc1843.el --- HZ (rfc1843) decoding
+;;; rfc1843.el --- HZ (RFC 1843) decoding  -*- lexical-binding:t -*-
 
-;; Copyright (C) 1998-2017 Free Software Foundation, Inc.
+;; Copyright (C) 1998-2023 Free Software Foundation, Inc.
 
 ;; Author: Shenghuo Zhu <zsh@cs.rochester.edu>
 ;; Keywords: news HZ HZ+ mail i18n
@@ -18,16 +18,19 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
+;; HZ (RFC 1843) decoding.  HZ is a data format for exchanging files
+;; of arbitrarily mixed Chinese and ASCII characters.
+;;
 ;; Test:
 ;; (rfc1843-decode-string  "~{<:Ky2;S{#,NpJ)l6HK!#~}")
 
 ;;; Code:
 
-(eval-when-compile (require 'cl))
+(eval-when-compile (require 'cl-lib))
 
 (defvar rfc1843-word-regexp
   "~\\({\\([\041-\167][\041-\176]\\| \\)+\\)\\(~}\\|$\\)")
@@ -54,15 +57,13 @@ HZ-encoded are decoded."
   "HZ+ decoding support if non-nil.
 HZ+ specification (also known as HZP) is to provide a standardized
 7-bit representation of mixed Big5, GB, and ASCII text for convenient
-e-mail transmission, news posting, etc.
-The document of HZ+ 0.78 specification can be found at
-ftp://ftp.math.psu.edu/pub/simpson/chinese/hzp/hzp.doc"
+e-mail transmission, news posting, etc."
   :type 'boolean
   :group 'mime)
 
 (defcustom rfc1843-newsgroups-regexp "chinese\\|hz"
   "Regexp of newsgroups in which might be HZ encoded."
-  :type 'string
+  :type 'regexp
   :group 'mime)
 
 (defun rfc1843-decode-region (from to)
@@ -115,15 +116,15 @@ ftp://ftp.math.psu.edu/pub/simpson/chinese/hzp/hzp.doc"
   "Decode HZ WORD and return it."
   (let ((i -1) (s (substring word 0)) v)
     (if (or (not firstc) (eq firstc ?{))
-	(while (< (incf i) (length s))
+	(while (< (cl-incf i) (length s))
 	  (if (eq (setq v (aref s i)) ? ) nil
 	    (aset s i (+ 128 v))))
-      (while (< (incf i) (length s))
+      (while (< (cl-incf i) (length s))
 	(if (eq (setq v (aref s i)) ? ) nil
 	  (setq v (+ (* 94 v) (aref s (1+ i)) -3135))
 	  (aset s i (+ (/ v 157) (if (eq firstc ?<) 201 161)))
 	  (setq v (% v 157))
-	  (aset s (incf i) (+ v (if (< v 63) 64 98))))))
+	  (aset s (cl-incf i) (+ v (if (< v 63) 64 98))))))
     s))
 
 (provide 'rfc1843)

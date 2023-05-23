@@ -1,8 +1,8 @@
-;;; srecode/getset.el --- Package for inserting new get/set methods.
+;;; srecode/getset.el --- Package for inserting new get/set methods.  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2007-2017 Free Software Foundation, Inc.
+;; Copyright (C) 2007-2023 Free Software Foundation, Inc.
 
-;; Author: Eric M. Ludlam <eric@siege-engine.com>
+;; Author: Eric M. Ludlam <zappo@gnu.org>
 
 ;; This file is part of GNU Emacs.
 
@@ -17,7 +17,7 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 ;;
@@ -32,6 +32,8 @@
 ;;; Code:
 (defvar srecode-insert-getset-fully-automatic-flag nil
   "Non-nil means accept choices srecode comes up with without asking.")
+
+(defvar srecode-semantic-selected-tag)
 
 ;;;###autoload
 (defun srecode-insert-getset (&optional class-in field-in)

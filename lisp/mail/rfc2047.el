@@ -1,6 +1,6 @@
-;;; rfc2047.el --- functions for encoding and decoding rfc2047 messages
+;;; rfc2047.el --- functions for encoding and decoding rfc2047 messages  -*- lexical-binding:t -*-
 
-;; Copyright (C) 1998-2017 Free Software Foundation, Inc.
+;; Copyright (C) 1998-2023 Free Software Foundation, Inc.
 
 ;; Author: Lars Magne Ingebrigtsen <larsi@gnus.org>
 ;;	MORIOKA Tomohiko <morioka@jaist.ac.jp>
@@ -17,7 +17,7 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -26,8 +26,7 @@
 
 ;;; Code:
 
-(eval-when-compile
-  (require 'cl))
+(eval-when-compile (require 'cl-lib))
 (defvar message-posting-charset)
 
 (require 'mm-util)
@@ -46,8 +45,11 @@
   '(("Newsgroups" . nil)
     ("Followup-To" . nil)
     ("Message-ID" . nil)
+    ;; This header must be pre-encoded by the MTA, so avoid
+    ;; double-encoding it.
+    ("Content-Disposition" . default)
     ("\\(Resent-\\)?\\(From\\|Cc\\|To\\|Bcc\\|\\(In-\\)?Reply-To\\|Sender\
-\\|Mail-Followup-To\\|Mail-Copies-To\\|Approved\\)" . address-mime)
+\\|Mail-Followup-To\\|Mail-Copies-To\\|Approved\\|Disposition-Notification-To\\)" . address-mime)
     (t . mime))
   "Header/encoding method alist.
 The list is traversed sequentially.  The keys can either be
@@ -155,7 +157,7 @@ This is either `base64' or `quoted-printable'."
       (goto-char (point-min))
       (skip-chars-forward "\x20-\x7f\r\n\t" limit)
       (while (< (point) limit)
-	(incf n8bit)
+	(cl-incf n8bit)
 	(forward-char 1)
 	(skip-chars-forward "\x20-\x7f\r\n\t" limit))
       (if (or (< (* 6 n8bit) (- limit (point-min)))
@@ -173,7 +175,7 @@ This is either `base64' or `quoted-printable'."
    (progn
      (forward-line 1)
      (if (re-search-forward "^[^ \n\t]" nil t)
-	 (point-at-bol)
+         (line-beginning-position)
        (point-max))))
   (goto-char (point-min)))
 
@@ -185,6 +187,7 @@ This is either `base64' or `quoted-printable'."
       (re-search-forward ":[ \t\n]*" nil t)
       (buffer-substring-no-properties (point) (point-max)))))
 
+(make-obsolete 'rfc2047-quote-special-characters-in-quoted-strings nil "27.1")
 (defun rfc2047-quote-special-characters-in-quoted-strings (&optional
 							   encodable-regexp)
   "Quote special characters with `\\'s in quoted strings.
@@ -270,18 +273,15 @@ Should be called narrowed to the head of the message."
 		(setq alist nil
 		      method (cdr elem))))
 	    (if (not (rfc2047-encodable-p))
-		(prog2
-		    (when (eq method 'address-mime)
-		      (rfc2047-quote-special-characters-in-quoted-strings))
-		    (if (and (eq (mm-body-7-or-8) '8bit)
-			     (mm-multibyte-p)
-			     (mm-coding-system-p
-			      (car message-posting-charset)))
-			;; 8 bit must be decoded.
-			(encode-coding-region
-			 (point-min) (point-max)
-			 (mm-charset-to-coding-system
-			  (car message-posting-charset)))))
+		(if (and (eq (mm-body-7-or-8) '8bit)
+			 (mm-multibyte-p)
+			 (mm-coding-system-p
+			  (car message-posting-charset)))
+		    ;; 8 bit must be decoded.
+		    (encode-coding-region
+		     (point-min) (point-max)
+		     (mm-charset-to-coding-system
+		      (car message-posting-charset))))
 	      ;; We found something that may perhaps be encoded.
 	      (re-search-forward "^[^:]+: *" nil t)
 	      (cond
@@ -291,11 +291,10 @@ Should be called narrowed to the head of the message."
 		(let ((rfc2047-encoding-type 'mime))
 		  (rfc2047-encode-region (point) (point-max))))
 	       ((eq method 'default)
-		(if (and (default-value 'enable-multibyte-characters)
-			 mail-parse-charset)
+		(if mail-parse-charset
 		    (encode-coding-region (point) (point-max)
 					  mail-parse-charset)))
-	       ;; We get this when CC'ing messages to newsgroups with
+	       ;; We get this when Cc'ing messages to newsgroups with
 	       ;; 8-bit names.  The group name mail copy just got
 	       ;; unconditionally encoded.  Previously, it would ask
 	       ;; whether to encode, which was quite confusing for the
@@ -306,18 +305,17 @@ Should be called narrowed to the head of the message."
 	       ;; in accordance with changes elsewhere.
 	       ((null method)
 		(rfc2047-encode-region (point) (point-max)))
-;;;	       ((null method)
-;;;		(if (or (message-options-get
-;;;			 'rfc2047-encode-message-header-encode-any)
-;;;			(message-options-set
-;;;			 'rfc2047-encode-message-header-encode-any
-;;;			 (y-or-n-p
-;;;			  "Some texts are not encoded. Encode anyway?")))
-;;;		    (rfc2047-encode-region (point-min) (point-max))
-;;;		  (error "Cannot send unencoded text")))
+	       ;; ((null method)
+	       ;;  (if (or (message-options-get
+	       ;;  	 'rfc2047-encode-message-header-encode-any)
+	       ;;  	(message-options-set
+	       ;;  	 'rfc2047-encode-message-header-encode-any
+	       ;;  	 (y-or-n-p
+	       ;;  	  "Some texts are not encoded. Encode anyway?")))
+	       ;;      (rfc2047-encode-region (point-min) (point-max))
+	       ;;    (error "Cannot send unencoded text")))
 	       ((mm-coding-system-p method)
-		(when (default-value 'enable-multibyte-characters)
-		  (encode-coding-region (point) (point-max) method)))
+		(encode-coding-region (point) (point-max) method))
 	       ;; Hm.
 	       (t)))
 	    (goto-char (point-max))))))))
@@ -328,7 +326,6 @@ Should be called narrowed to the head of the message."
 (defun rfc2047-encodable-p ()
   "Return non-nil if any characters in current buffer need encoding in headers.
 The buffer may be narrowed."
-  (require 'message)			; for message-posting-charset
   (let ((charsets
 	 (mm-find-mime-charset-region (point-min) (point-max))))
     (goto-char (point-min))
@@ -337,11 +334,11 @@ The buffer may be narrowed."
 		 (re-search-forward rfc2047-encoded-word-regexp nil t)
 	       (goto-char (point-min))))
 	(and charsets
-	     (not (equal charsets (list (car message-posting-charset))))))))
+	     (not (equal charsets (list (car (bound-and-true-p message-posting-charset)))))))))
 
 ;; Use this syntax table when parsing into regions that may need
 ;; encoding.  Double quotes are string delimiters, backslash is
-;; character quoting, and all other RFC 2822 special characters are
+;; character quoting, and all other RFC 822 (or later) special characters are
 ;; treated as punctuation so we can use forward-sexp/forward-word to
 ;; skip to the end of regions appropriately.  Nb. ietf-drums does
 ;; things differently.
@@ -369,7 +366,7 @@ The buffer may be narrowed."
 
 (defun rfc2047-encode-region (b e &optional dont-fold)
   "Encode words in region B to E that need encoding.
-By default, the region is treated as containing RFC2822 addresses.
+By default, the region is treated as containing RFC 822 (or later) addresses.
 Dynamically bind `rfc2047-encoding-type' to change that."
   (save-restriction
     (narrow-to-region b e)
@@ -401,12 +398,10 @@ Dynamically bind `rfc2047-encoding-type' to change that."
 	      (if (> (point) start)
 		  (rfc2047-encode start (point))
 		(goto-char end))))
-	;; `address-mime' case -- take care of quoted words, comments.
-	(rfc2047-quote-special-characters-in-quoted-strings encodable-regexp)
 	(with-syntax-table rfc2047-syntax-table
 	  (goto-char (point-min))
 	  (condition-case err		; in case of unbalanced quotes
-	      ;; Look for rfc2822-style: sequences of atoms, quoted
+	      ;; Look for RFC 822 (or later) style: sequences of atoms, quoted
 	      ;; strings, specials, whitespace.  (Specials mustn't be
 	      ;; encoded.)
 	      (while (not (eobp))
@@ -620,7 +615,7 @@ should not change this value.")
 		 (setq next prev
 		       prev nil)
 	       (if (or (< index limit)
-		       (<= (+ len (or (string-match "\n" tail)
+		       (<= (+ len (or (string-search "\n" tail)
 				      (length tail)))
 			   rfc2047-encode-max-chars))
 		   (setq prev next
@@ -686,14 +681,14 @@ Point moves to the end of the region."
 	     (goto-char b)
 	     (setq b (point-marker)
 		   e (set-marker (make-marker) e))
-	     (rfc2047-fold-region (point-at-bol) b)
+             (rfc2047-fold-region (line-beginning-position) b)
 	     (goto-char b)
 	     (skip-chars-backward "^ \t\n")
 	     (unless (= 0 (skip-chars-backward " \t"))
 	       ;; `crest' may contain whitespace and an open parenthesis.
 	       (setq crest (buffer-substring-no-properties (point) b)))
 	     (setq eword (rfc2047-encode-1
-			  (- b (point-at-bol))
+                          (- b (line-beginning-position))
 			  (replace-regexp-in-string
 			   "\n\\([ \t]?\\)" "\\1"
 			   (buffer-substring-no-properties b e))
@@ -724,39 +719,44 @@ Point moves to the end of the region."
 	   (goto-char e)))))
 
 (defun rfc2047-fold-field ()
-  "Fold the current header field."
+  "Fold the current header field.
+Return the new end point."
   (save-excursion
     (save-restriction
       (rfc2047-narrow-to-field)
-      (rfc2047-fold-region (point-min) (point-max)))))
+      (rfc2047-fold-region (point-min) (point-max))
+      (point-max))))
 
 (defun rfc2047-fold-region (b e)
   "Fold long lines in region B to E."
   (save-restriction
     (narrow-to-region b e)
     (goto-char (point-min))
-    (let ((break nil)
-	  (qword-break nil)
-	  (first t)
-	  (bol (save-restriction
-		 (widen)
-		 (point-at-bol))))
+    (let* ((break nil)
+	   (qword-break nil)
+	   (bol (save-restriction
+		  (widen)
+		  (line-beginning-position)))
+           ;; This function is either called with the Header: name in
+           ;; the region or not.  If it's not in the region, then we
+           ;; may already have a space.
+	   (first (or (= bol (point))
+                      (save-restriction
+                        (widen)
+                        (save-excursion
+                          (not (re-search-backward "[ \t]" bol t)))))))
       (while (not (eobp))
 	(when (and (or break qword-break)
 		   (> (- (point) bol) 76))
-	  (goto-char (or break qword-break))
-	  (setq break nil
-		qword-break nil)
-	  (skip-chars-backward " \t")
-	  (if (looking-at "[ \t]")
-	      (insert ?\n)
-	    (insert "\n "))
-	  (setq bol (1- (point)))
-	  ;; Don't break before the first non-LWSP characters.
-	  (skip-chars-forward " \t")
-	  (unless (eobp)
-	    (forward-char 1)))
+          ;; We have a line longer than 76 characters, so break the
+          ;; line.
+          (setq bol (rfc2047--break-line break qword-break)
+                break nil
+		qword-break nil))
+        ;; See whether we're at a point where we can break the line
+        ;; (if it turns out to be too long).
 	(cond
+         ;; New line, so there's nothing to break.
 	 ((eq (char-after) ?\n)
 	  (forward-char 1)
 	  (setq bol (point)
@@ -765,12 +765,19 @@ Point moves to the end of the region."
 	  (skip-chars-forward " \t")
 	  (unless (or (eobp) (eq (char-after) ?\n))
 	    (forward-char 1)))
+         ;; CR in CRLF; shouldn't really as this function shouldn't be
+         ;; called after encoding for line transmission.
 	 ((eq (char-after) ?\r)
 	  (forward-char 1))
+         ;; Whitespace -- possible break point.
 	 ((memq (char-after) '(?  ?\t))
 	  (skip-chars-forward " \t")
-	  (unless first ;; Don't break just after the header name.
+          ;; Don't break just after the header name.
+	  (if first
+              (setq first nil)
 	    (setq break (point))))
+         ;; If the header has been encoded (with RFC2047 encoding,
+         ;; which looks like "=?utf-8?Q?F=C3=B3?=".
 	 ((not break)
 	  (if (not (looking-at "=\\?[^=]"))
 	      (if (eq (char-after) ?=)
@@ -780,23 +787,28 @@ Point moves to the end of the region."
 	    (unless (= (point) b)
 	      (setq qword-break (point)))
 	    (skip-chars-forward "^ \t\n\r")))
+         ;; Look for the next LWSP (i.e., whitespace character).
 	 (t
-	  (skip-chars-forward "^ \t\n\r")))
-	(setq first nil))
+	  (skip-chars-forward "^ \t\n\r"))))
       (when (and (or break qword-break)
 		 (> (- (point) bol) 76))
-	(goto-char (or break qword-break))
-	(setq break nil
-	      qword-break nil)
-	(if (or (> 0 (skip-chars-backward " \t"))
-		(looking-at "[ \t]"))
-	    (insert ?\n)
-	  (insert "\n "))
-	(setq bol (1- (point)))
-	;; Don't break before the first non-LWSP characters.
-	(skip-chars-forward " \t")
-	(unless (eobp)
-	  (forward-char 1))))))
+        ;; Finally, after the loop, we have a line longer than 76
+        ;; characters, so break the line.
+        (rfc2047--break-line break qword-break)))))
+
+(defun rfc2047--break-line (break qword-break)
+  (goto-char (or break qword-break))
+  (skip-chars-backward " \t")
+  (if (looking-at "[ \t]")
+      (insert ?\n)
+    (insert "\n "))
+  (prog1
+      ;; Return beginning-of-line.
+      (1- (point))
+    ;; Don't break before the first non-LWSP characters.
+    (skip-chars-forward " \t")
+    (unless (eobp)
+      (forward-char 1))))
 
 (defun rfc2047-unfold-field ()
   "Fold the current line."
@@ -812,18 +824,18 @@ Point moves to the end of the region."
     (goto-char (point-min))
     (let ((bol (save-restriction
 		 (widen)
-		 (point-at-bol)))
-	  (eol (point-at-eol)))
+                 (line-beginning-position)))
+          (eol (line-end-position)))
       (forward-line 1)
       (while (not (eobp))
 	(if (and (looking-at "[ \t]")
-		 (< (- (point-at-eol) bol) 76))
+                 (< (- (line-end-position) bol) 76))
 	    (delete-region eol (progn
 				 (goto-char eol)
 				 (skip-chars-forward "\r\n")
 				 (point)))
-	  (setq bol (point-at-bol)))
-	(setq eol (point-at-eol))
+          (setq bol (line-beginning-position)))
+        (setq eol (line-end-position))
 	(forward-line 1)))))
 
 (defun rfc2047-b-encode-string (string)
@@ -851,7 +863,7 @@ Point moves to the end of the region."
     (buffer-string)))
 
 (defun rfc2047-encode-parameter (param value)
-  "Return and PARAM=VALUE string encoded in the RFC2047-like style.
+  "Return a PARAM=VALUE string encoded in the RFC2047-like style.
 This is a substitution for the `rfc2231-encode-string' function, that
 is the standard but many mailers don't support it."
   (let ((rfc2047-encoding-type 'mime)
@@ -931,11 +943,10 @@ only be used for decoding, not for encoding."
   "Decode successive encoded-words in WORDS and return a decoded string.
 Each element of WORDS looks like (CHARSET ENCODING ENCODED-TEXT
 ENCODED-WORD)."
-  (let (word charset cs encoding text rest)
-    (while words
-      (setq word (pop words))
+  (let (cs text rest)
+    (dolist (word words)
       (if (and (setq cs (rfc2047-charset-to-coding-system
-			 (setq charset (car word)) t))
+			 (car word) t))
 	       (condition-case code
 		   (cond ((char-equal ?B (nth 1 word))
 			  (setq text (base64-decode-string
@@ -954,7 +965,10 @@ ENCODED-WORD)."
 	    (push (cons cs text) rest))
 	;; Don't decode encoded-word.
 	(push (cons nil (nth 3 word)) rest)))
+    (setq words nil)
     (while rest
+      ;; FIXME: This looks O(N²).  Can we make it more efficient
+      ;; with something like mapconcat?
       (setq words (concat
 		   (or (and (setq cs (caar rest))
 			    (condition-case code
@@ -1026,7 +1040,7 @@ other than `\"' and `\\' in quoted strings."
 	      (replace-match " "))
 	    (setq end (point-max))
 	    ;; Quote decoded words if there are special characters
-	    ;; which might violate RFC2822.
+	    ;; which might violate RFC 822 (or later).
 	    (when (and rfc2047-quote-decoded-words-containing-tspecials
 		       (let ((regexp (car (rassq
 					   'address-mime
@@ -1100,7 +1114,7 @@ strings are stripped."
   "Decode MIME-encoded STRING and return the result.
 If ADDRESS-MIME is non-nil, strip backslashes which precede characters
 other than `\"' and `\\' in quoted strings."
-  (if (string-match "=\\?" string)
+  (if (string-search "=?" string)
       (with-temp-buffer
 	;; We used to only call mm-enable-multibyte if `m' is non-nil,
 	;; but this can't be the right criterion.  Don't just revert this
@@ -1140,7 +1154,9 @@ other than `\"' and `\\' in quoted strings."
 	    ;; string is purely ASCII
 	    string
 	  (decode-coding-string string mail-parse-charset))
-      (string-to-multibyte string))))
+      (if (multibyte-string-p string)
+          string
+        (decode-coding-string string 'us-ascii)))))
 
 (defun rfc2047-decode-address-string (string)
   "Decode MIME-encoded STRING and return the result.
@@ -1157,7 +1173,7 @@ strings are stripped."
       string
     (when (string-match "=+$" string)
       (setq string (substring string 0 (match-beginning 0))))
-    (case (mod (length string) 4)
+    (pcase (mod (length string) 4)
       (0 string)
       (1 string) ;; Error, don't pad it.
       (2 (concat string "=="))

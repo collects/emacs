@@ -1,6 +1,6 @@
-;;; programmer-dvorak.el --- Quail package for the programmer Dvorak layout
+;;; programmer-dvorak.el --- Quail package for the programmer Dvorak layout  -*- lexical-binding: t -*-
 
-;; Copyright (C) 2015-2017 Free Software Foundation, Inc.
+;; Copyright (C) 2015-2023 Free Software Foundation, Inc.
 
 ;; Author: Joakim Jalap <joakim.jalap@fastmail.com>
 
@@ -19,12 +19,12 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
 ;;; This file provides an input method for the programmers Dvorak keyboard
-;;; layout by Roland Kaufman (<http://www.kaufmann.no/roland/dvorak/>).
+;;; layout by Roland Kaufman (<https://www.kaufmann.no/roland/dvorak/>).
 
 ;;; Code:
 

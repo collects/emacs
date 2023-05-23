@@ -1,5 +1,5 @@
 /* Functions for memory limit warnings.
-   Copyright (C) 1990, 1992, 2001-2017 Free Software Foundation, Inc.
+   Copyright (C) 1990, 1992, 2001-2023 Free Software Foundation, Inc.
 
 This file is part of GNU Emacs.
 
@@ -14,7 +14,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
+along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.  */
 
 #include <config.h>
 #include <unistd.h> /* for 'environ', on AIX */
@@ -126,7 +126,7 @@ get_lim_data (void)
 
   dos_memory_info (&totalram, &freeram, &totalswap, &freeswap);
   lim_data = freeram;
-  /* Don't believe they will give us more that 0.5 GB.   */
+  /* Don't believe they will give us more than 0.5 GB.   */
   if (lim_data > 512U * 1024U * 1024U)
     lim_data = 512U * 1024U * 1024U;
 }

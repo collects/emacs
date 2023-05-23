@@ -4,7 +4,7 @@
 #
 #	admin/merge-pkg-config
 
-# Copyright 2014-2017 Free Software Foundation, Inc.
+# Copyright 2014-2023 Free Software Foundation, Inc.
 
 # This file is part of GNU Emacs.
 
@@ -19,7 +19,7 @@
 # GNU General Public License for more details.
 
 # You should have received a copy of the GNU General Public License
-# along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+# along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 # written by Paul Eggert
 
@@ -60,4 +60,4 @@ test -d m4 || {
 
 printf >&2 '%s\n' "$0: copying $dir/pkg.m4 to m4/pkg.m4"
 
-cp $dir/pkg.m4 m4
+cp "$dir"/pkg.m4 m4

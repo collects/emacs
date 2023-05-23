@@ -1,6 +1,6 @@
-;;; decompress-tests.el --- Test suite for decompress.
+;;; decompress-tests.el --- Test suite for decompress. -*- lexical-binding: t -*-
 
-;; Copyright (C) 2013-2017 Free Software Foundation, Inc.
+;; Copyright (C) 2013-2023 Free Software Foundation, Inc.
 
 ;; Author: Lars Ingebrigtsen <larsi@gnus.org>
 
@@ -17,11 +17,13 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Code:
 
 (require 'ert)
+
+(declare-function zlib-decompress-region "decompress.c")
 
 (defvar zlib-tests-data-directory
   (expand-file-name "data/decompress" (getenv "EMACS_TEST_DIRECTORY"))
@@ -29,17 +31,17 @@
 
 (ert-deftest zlib--decompress ()
   "Test decompressing a gzipped file."
-  (when (and (fboundp 'zlib-available-p)
-	     (zlib-available-p))
-    (should (string=
-	     (with-temp-buffer
-	       (set-buffer-multibyte nil)
-	       (insert-file-contents-literally
-		(expand-file-name "foo.gz" zlib-tests-data-directory))
-	       (zlib-decompress-region (point-min) (point-max))
-	       (buffer-string))
-	     "foo\n"))))
+  (skip-unless (and (fboundp 'zlib-available-p)
+                    (zlib-available-p)))
+  (should (string=
+           (with-temp-buffer
+             (set-buffer-multibyte nil)
+             (insert-file-contents-literally
+              (expand-file-name "foo.gz" zlib-tests-data-directory))
+             (zlib-decompress-region (point-min) (point-max))
+             (buffer-string))
+           "foo\n")))
 
 (provide 'decompress-tests)
 
-;;; decompress-tests.el ends here.
+;;; decompress-tests.el ends here

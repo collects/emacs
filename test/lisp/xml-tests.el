@@ -1,6 +1,6 @@
-;;; xml-parse-tests.el --- Test suite for XML parsing.
+;;; xml-tests.el --- Test suite for XML parsing.  -*- lexical-binding:t -*-
 
-;; Copyright (C) 2012-2017 Free Software Foundation, Inc.
+;; Copyright (C) 2012-2023 Free Software Foundation, Inc.
 
 ;; Author: Chong Yidong <cyd@stupidchicken.com>
 ;; Keywords:       internal
@@ -19,7 +19,7 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -78,7 +78,7 @@
     ;; Bug#16344
     "<!----><x>< /x>"
     "<a>< b/></a>")
-  "List of XML strings that should signal an error in the parser")
+  "List of XML strings that should signal an error in the parser.")
 
 (defvar xml-parse-tests--qnames
   '( ;; Test data for name expansion
@@ -97,7 +97,7 @@
      ((("FOOBAR:" . "something") nil "hi there"))
      ((FOOBAR:something nil "hi there"))))
   "List of strings which are parsed using namespace expansion.
-Parser is called with and without 'symbol-qnames argument.")
+Parser is called with and without `symbol-qnames' argument.")
 
 (ert-deftest xml-parse-tests ()
   "Test XML parsing."
@@ -149,8 +149,50 @@ Parser is called with and without 'symbol-qnames argument.")
     (should (equal (cdr xml-parse-test--default-namespace-qnames)
                    (xml-parse-region nil nil nil nil 'symbol-qnames)))))
 
-;; Local Variables:
-;; no-byte-compile: t
-;; End:
+;; Test bug #26533 (proper expansion in prefixed attributes with 'symbol-qnames)
+(defvar xml-parse-test--namespace-attribute-qnames
+  (cons "<something xmlns:a=\"myns:\"><whatever a:b='c'></whatever></something>"
+        '((something
+           ((("http://www.w3.org/2000/xmlns/" . "a")
+             . "myns:"))
+           (whatever
+            ((myns:b . "c")))))))
 
-;;; xml-parse-tests.el ends here.
+(ert-deftest xml-parse-namespace-attribute-qnames ()
+  (with-temp-buffer
+    (insert (car xml-parse-test--namespace-attribute-qnames))
+    (should (equal (cdr xml-parse-test--namespace-attribute-qnames)
+                   (xml-parse-region nil nil nil nil 'symbol-qnames)))))
+
+(ert-deftest xml-print-invalid-cdata ()
+  "Check that Bug#41094 is fixed."
+  (with-temp-buffer
+    (should (equal (should-error (xml-print '((foo () "\0")))
+                                 :type 'xml-invalid-character)
+                   '(xml-invalid-character 0 1)))
+    (should (equal (should-error (xml-print '((foo () "\u00FF \xFF")))
+                                 :type 'xml-invalid-character)
+                   '(xml-invalid-character #x3FFFFF 3)))))
+
+(defvar xml-tests--data-with-comments
+  `(;; simple case
+    ("<?xml version=\"1.0\"?><foo baz=\"true\">bar</foo>"
+     . ((foo ((baz . "true")) "bar")))
+    ;; toplevel comments -- first document child must not get lost
+    (,(concat "<?xml version=\"1.0\"?><foo>bar</foo><!--comment-1-->"
+              "<!--comment-2-->")
+     . ((foo nil "bar")))
+    (,(concat "<?xml version=\"1.0\"?><!--comment-a--><foo a=\"b\">"
+              "<bar>blub</bar></foo><!--comment-b--><!--comment-c-->")
+     . ((foo ((a . "b")) (bar nil "blub")))))
+  "Alist of XML strings and their expected parse trees for discarded comments.")
+
+(ert-deftest xml-remove-comments ()
+  (dolist (test xml-tests--data-with-comments)
+    (erase-buffer)
+    (insert (car test))
+    (xml-remove-comments (point-min) (point-max))
+    (should (equal (cdr test)
+                   (xml-parse-region (point-min) (point-max))))))
+
+;;; xml-tests.el ends here

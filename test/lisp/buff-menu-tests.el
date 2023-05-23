@@ -1,6 +1,6 @@
 ;;; buff-menu-tests.el --- Test suite for buff-menu.el -*- lexical-binding: t -*-
 
-;; Copyright (C) 2016-2017 Free Software Foundation, Inc.
+;; Copyright (C) 2016-2023 Free Software Foundation, Inc.
 
 ;; Author: Tino Calancha <tino.calancha@gmail.com>
 
@@ -17,28 +17,27 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
 ;;; Code:
 
 (require 'ert)
+(eval-when-compile (require 'ert-x))
 
 (ert-deftest buff-menu-24962 ()
-  "Test for http://debbugs.gnu.org/24962 ."
-  (let ((file (expand-file-name "foo" temporary-file-directory))
-        buf)
-    (unwind-protect
-        (progn
-          (write-region "foo" nil file)
-          (setq buf (find-file file))
-          (rename-buffer " foo")
-          (list-buffers)
-          (with-current-buffer "*Buffer List*"
-            (should (string= " foo" (buffer-name (Buffer-menu-buffer))))))
-      (and (buffer-live-p buf) (kill-buffer buf))
-      (and (file-exists-p file) (delete-file file)))))
+  "Test for https://debbugs.gnu.org/24962 ."
+  (ert-with-temp-file file
+    :suffix "foo"
+    (let ((buf (find-file file)))
+      (unwind-protect
+          (progn
+            (rename-buffer " foo")
+            (list-buffers)
+            (with-current-buffer "*Buffer List*"
+              (should (string= " foo" (buffer-name (Buffer-menu-buffer))))))
+        (and (buffer-live-p buf) (kill-buffer buf))))))
 
 (provide 'buff-menu-tests)
 

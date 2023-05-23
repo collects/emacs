@@ -148,7 +148,7 @@ input and writes the uncompressed data on standard output.  @code{zcat}
 will uncompress files that have the correct magic number whether they
 have a @samp{.gz} suffix or not.
 
-@code{gzip} uses the Lempel-Ziv algorithm used in @code{zip} and PKZIP.
+@code{gzip} uses the Lempel-Ziv algorithm used in @code{zip} and PKZIP@.
 The amount of compression obtained depends on the size of the input and
 the distribution of common substrings.  Typically, text such as source
 code or English is reduced by 60-70%.  Compression is generally much
@@ -240,7 +240,7 @@ Force compression or decompression even if the file has multiple links
 or the corresponding file already exists, or if the compressed data
 is read from or written to a terminal. If the input data is not in
 a format recognized by @code{gzip}, and if the option --stdout is also
-given, copy the input data without change to the standard ouput: let
+given, copy the input data without change to the standard output: let
 @code{zcat} behave as @code{cat}. If @samp{-f} is not given, and
 when not running in the background, @code{gzip} prompts to verify
 whether an existing file should be overwritten.

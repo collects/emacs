@@ -1,8 +1,8 @@
-;;; semantic/tag-write.el --- Write tags to a text stream
+;;; semantic/tag-write.el --- Write tags to a text stream  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2008-2017 Free Software Foundation, Inc.
+;; Copyright (C) 2008-2023 Free Software Foundation, Inc.
 
-;; Author: Eric M. Ludlam <eric@siege-engine.com>
+;; Author: Eric M. Ludlam <zappo@gnu.org>
 
 ;; This file is part of GNU Emacs.
 
@@ -17,7 +17,7 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 ;;
@@ -88,7 +88,7 @@ INDENT is the amount of indentation to use for this tag."
   (if (semantic-tag-with-position-p tag)
       (let ((bounds (semantic-tag-bounds tag)))
 	(princ " ")
-	(prin1 (apply 'vector bounds))
+	(prin1 (apply #'vector bounds))
 	)
     (princ " nil"))
   ;; End it.

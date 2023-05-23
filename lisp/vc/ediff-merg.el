@@ -1,6 +1,6 @@
-;;; ediff-merg.el --- merging utilities
+;;; ediff-merg.el --- merging utilities  -*- lexical-binding:t -*-
 
-;; Copyright (C) 1994-2017 Free Software Foundation, Inc.
+;; Copyright (C) 1994-2023 Free Software Foundation, Inc.
 
 ;; Author: Michael Kifer <kifer@cs.stonybrook.edu>
 ;; Package: ediff
@@ -18,7 +18,7 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -53,8 +53,8 @@ Valid values are the symbols `default-A', `default-B', and `combined'."
   "Pattern to be used for combining difference regions in buffers A and B.
 The value must be a list of the form
 \(STRING1 bufspec1  STRING2 bufspec2 STRING3 bufspec3 STRING4)
-where bufspec is the symbol A, B, or Ancestor. For instance, if the value is
-'(STRING1 A  STRING2 Ancestor STRING3 B STRING4) then the
+where bufspec is the symbol A, B, or Ancestor.  For instance, if the value is
+`(STRING1 A  STRING2 Ancestor STRING3 B STRING4)' then the
 combined text will look like this:
 
 STRING1
@@ -63,14 +63,13 @@ STRING2
 diff region from the ancestor
 STRING3
 diff region from variant B
-STRING4
-"
+STRING4"
   :type '(choice (list string symbol string symbol string)
 		 (list string symbol string symbol string symbol string))
   :group 'ediff-merge)
 
 (defcustom ediff-show-clashes-only nil
-  "If t, show only those diff regions where both buffers disagree with the ancestor.
+  "If t, show only diff regions where both buffers disagree with the ancestor.
 This means that regions that have status prefer-A or prefer-B will be
 skipped over.  A value of nil means show all regions."
   :type 'boolean
@@ -84,7 +83,7 @@ A region is considered to have been changed if it is different from the current
 default (`default-A', `default-B', `combined') and it hasn't been marked as
 `prefer-A' or `prefer-B'.
 A region is considered to have been changed also when it is marked as
-as `prefer-A', but is different from the corresponding difference region in
+`prefer-A', but is different from the corresponding difference region in
 Buffer A or if it is marked as `prefer-B' and is different from the region in
 Buffer B."
   :type 'boolean
@@ -194,7 +193,7 @@ Buffer B."
 
 (defun ediff-set-merge-mode ()
   (normal-mode t)
-  (remove-hook 'local-write-file-hooks 'ediff-set-merge-mode))
+  (remove-hook 'write-file-functions #'ediff-set-merge-mode t))
 
 
 ;; Go over all diffs starting with DIFF-NUM and copy regions into buffer C
@@ -258,7 +257,8 @@ Buffer B."
 
 
 (defun ediff-re-merge ()
-  "Remerge unmodified diff regions using a new default.  Start with the current region."
+  "Remerge unmodified diff regions using a new default.
+Start with the current region."
   (interactive)
   (let* ((default-variant-alist
 	   (list '("default-A") '("default-B") '("combined")))
@@ -281,7 +281,7 @@ With a prefix argument, returns window C to its normal size.
 Used only for merging jobs."
   (interactive "P")
   (if (not ediff-merge-job)
-      (error "ediff-shrink-window-C can be used only for merging jobs"))
+      (user-error "ediff-shrink-window-C can be used only for merging jobs"))
   (cond ((eq arg '-) (setq arg -1))
 	((not (numberp arg)) (setq arg nil)))
   (cond ((null arg)
@@ -382,12 +382,4 @@ Combining is done according to the specifications in variable
 
 
 (provide 'ediff-merg)
-
-
-;; Local Variables:
-;; eval: (put 'ediff-defvar-local 'lisp-indent-hook 'defun)
-;; eval: (put 'ediff-with-current-buffer 'lisp-indent-hook 1)
-;; eval: (put 'ediff-with-current-buffer 'edebug-form-spec '(form body))
-;; End:
-
 ;;; ediff-merg.el ends here

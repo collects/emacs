@@ -1,8 +1,8 @@
-;;; semantic/db-debug.el --- Extra level debugging routines for Semantic
+;;; semantic/db-debug.el --- Extra level debugging routines for Semantic  -*- lexical-binding: t; -*-
 
-;;; Copyright (C) 2008-2017 Free Software Foundation, Inc.
+;; Copyright (C) 2008-2023 Free Software Foundation, Inc.
 
-;; Author: Eric M. Ludlam <eric@siege-engine.com>
+;; Author: Eric M. Ludlam <zappo@gnu.org>
 
 ;; This file is part of GNU Emacs.
 
@@ -17,7 +17,7 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 ;;
@@ -38,7 +38,7 @@
     (data-debug-new-buffer "*SEMANTICDB*")
     (data-debug-insert-stuff-list db "*")))
 
-(defalias 'semanticdb-adebug-database-list 'semanticdb-dump-all-table-summary)
+(defalias 'semanticdb-adebug-database-list #'semanticdb-dump-all-table-summary)
 
 (defun semanticdb-adebug-current-database ()
   "Run ADEBUG on the current database."
@@ -74,7 +74,7 @@
 (defun semanticdb-table-oob-sanity-check (cache)
   "Validate that CACHE tags do not have any overlays in them."
   (while cache
-    (when (semantic-overlay-p (semantic-tag-overlay cache))
+    (when (overlayp (semantic-tag-overlay cache))
       (message "Tag %s has an erroneous overlay!"
 	       (semantic-format-tag-summarize (car cache))))
     (semanticdb-table-oob-sanity-check

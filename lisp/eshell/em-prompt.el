@@ -1,6 +1,6 @@
 ;;; em-prompt.el --- command prompts  -*- lexical-binding:t -*-
 
-;; Copyright (C) 1999-2017 Free Software Foundation, Inc.
+;; Copyright (C) 1999-2023 Free Software Foundation, Inc.
 
 ;; Author: John Wiegley <johnw@gnu.org>
 
@@ -17,7 +17,7 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
@@ -27,7 +27,7 @@
 ;;; Code:
 
 (require 'esh-mode)
-(eval-when-compile (require 'eshell))
+(require 'text-property-search)
 
 ;;;###autoload
 (progn
@@ -48,10 +48,9 @@ as is common with most shells."
 (autoload 'eshell/pwd "em-dirs")
 
 (defcustom eshell-prompt-function
-  (function
-   (lambda ()
-     (concat (abbreviate-file-name (eshell/pwd))
-	     (if (= (user-uid) 0) " # " " $ "))))
+  (lambda ()
+    (concat (abbreviate-file-name (eshell/pwd))
+            (if (= (file-user-uid) 0) " # " " $ ")))
   "A function that returns the Eshell prompt string.
 Make sure to update `eshell-prompt-regexp' so that it will match your
 prompt."
@@ -59,11 +58,12 @@ prompt."
   :group 'eshell-prompt)
 
 (defcustom eshell-prompt-regexp "^[^#$\n]* [#$] "
-  "A regexp which fully matches your eshell prompt.
-This setting is important, since it affects how eshell will interpret
-the lines that are passed to it.
-If this variable is changed, all Eshell buffers must be exited and
-re-entered for it to take effect."
+  "A regexp which fully matches your Eshell prompt.
+This is useful for navigating by paragraph using \
+\\[forward-paragraph] and \\[backward-paragraph].
+
+If this variable is changed, all Eshell buffers must be exited
+and re-entered for it to take effect."
   :type 'regexp
   :group 'eshell-prompt)
 
@@ -80,7 +80,6 @@ re-entered for it to take effect."
 For highlighting other kinds of strings -- similar to shell mode's
 behavior -- simply use an output filer which changes text properties."
   :group 'eshell-prompt)
-(define-obsolete-face-alias 'eshell-prompt-face 'eshell-prompt "22.1")
 
 (defcustom eshell-before-prompt-hook nil
   "A list of functions to call before outputting the prompt."
@@ -98,83 +97,119 @@ arriving, or after."
   :options '(eshell-show-maximum-output)
   :group 'eshell-prompt)
 
+(defvar-keymap eshell-prompt-mode-map
+  "C-c C-n" #'eshell-next-prompt
+  "C-c C-p" #'eshell-previous-prompt)
+
+(defvar-keymap eshell-prompt-repeat-map
+  :doc "Keymap to repeat eshell-prompt key sequences.  Used in `repeat-mode'."
+  :repeat t
+  "C-n" #'eshell-next-prompt
+  "C-p" #'eshell-previous-prompt)
+
 ;;; Functions:
 
-(defun eshell-prompt-initialize ()
+(define-minor-mode eshell-prompt-mode
+  "Minor mode for eshell-prompt module.
+
+\\{eshell-prompt-mode-map}"
+  :keymap eshell-prompt-mode-map)
+
+(defun eshell-prompt-initialize ()  ;Called from `eshell-mode' via intern-soft!
   "Initialize the prompting code."
   (unless eshell-non-interactive-p
     (add-hook 'eshell-post-command-hook 'eshell-emit-prompt nil t)
 
     (make-local-variable 'eshell-prompt-regexp)
     (if eshell-prompt-regexp
-	(set (make-local-variable 'paragraph-start) eshell-prompt-regexp))
+        (setq-local paragraph-start eshell-prompt-regexp))
 
-    (set (make-local-variable 'eshell-skip-prompt-function)
-	 'eshell-skip-prompt)
-
-    (define-key eshell-command-map [(control ?n)] 'eshell-next-prompt)
-    (define-key eshell-command-map [(control ?p)] 'eshell-previous-prompt)))
+    (eshell-prompt-mode)))
 
 (defun eshell-emit-prompt ()
   "Emit a prompt if eshell is being used interactively."
+  (when (boundp 'ansi-color-context-region)
+    (setq ansi-color-context-region nil))
   (run-hooks 'eshell-before-prompt-hook)
   (if (not eshell-prompt-function)
       (set-marker eshell-last-output-end (point))
     (let ((prompt (funcall eshell-prompt-function)))
-      (and eshell-highlight-prompt
-	   (add-text-properties 0 (length prompt)
-				'(read-only t
-				  font-lock-face eshell-prompt
-				  front-sticky (font-lock-face read-only)
-				  rear-nonsticky (font-lock-face read-only))
-				prompt))
-      (eshell-interactive-print prompt)))
+      (add-text-properties
+       0 (length prompt)
+       (if eshell-highlight-prompt
+           '( read-only t
+              field prompt
+              font-lock-face eshell-prompt
+              front-sticky (read-only field font-lock-face)
+              rear-nonsticky (read-only field font-lock-face))
+         '( field prompt
+            front-sticky (field)
+            rear-nonsticky (field)))
+       prompt)
+      (eshell-interactive-filter nil prompt)))
   (run-hooks 'eshell-after-prompt-hook))
 
-(defun eshell-backward-matching-input (regexp arg)
-  "Search backward through buffer for match for REGEXP.
-Matches are searched for on lines that match `eshell-prompt-regexp'.
-With prefix argument N, search for Nth previous match.
-If N is negative, find the next or Nth next match."
-  (interactive (eshell-regexp-arg "Backward input matching (regexp): "))
-  (let* ((re (concat eshell-prompt-regexp ".*" regexp))
-	 (pos (save-excursion (end-of-line (if (> arg 0) 0 1))
-			      (if (re-search-backward re nil t arg)
-				  (point)))))
-    (if (null pos)
-	(progn (message "Not found")
-	       (ding))
-      (goto-char pos)
-      (eshell-bol))))
-
 (defun eshell-forward-matching-input (regexp arg)
-  "Search forward through buffer for match for REGEXP.
-Matches are searched for on lines that match `eshell-prompt-regexp'.
-With prefix argument N, search for Nth following match.
-If N is negative, find the previous or Nth previous match."
+  "Search forward through buffer for command input that matches REGEXP.
+With prefix argument N, search for Nth next match.  If N is
+negative, find the Nth previous match."
   (interactive (eshell-regexp-arg "Forward input matching (regexp): "))
-  (eshell-backward-matching-input regexp (- arg)))
+  (let ((direction (if (> arg 0) 1 -1))
+        (count (abs arg)))
+    (unless (catch 'found
+              (while (> count 0)
+                (eshell-next-prompt direction)
+                (when (and (string-match regexp (field-string))
+                           (= (setq count (1- count)) 0))
+                  (throw 'found t))))
+      (message "Not found")
+      (ding))))
+
+(defun eshell-backward-matching-input (regexp arg)
+  "Search backward through buffer for command input that matches REGEXP.
+With prefix argument N, search for Nth previous match.  If N is
+negative, find the Nth next match."
+  (interactive (eshell-regexp-arg "Backward input matching (regexp): "))
+  (eshell-forward-matching-input regexp (- arg)))
 
 (defun eshell-next-prompt (n)
-  "Move to end of Nth next prompt in the buffer.
-See `eshell-prompt-regexp'."
+  "Move to end of Nth next prompt in the buffer."
   (interactive "p")
-  (forward-paragraph n)
-  (eshell-skip-prompt))
+  (if (natnump n)
+      (while (and (> n 0)
+                  (text-property-search-forward 'field 'prompt t))
+        (setq n (1- n)))
+    (let (match this-match)
+      (forward-line 0)           ; Don't count prompt on current line.
+      (while (and (< n 0)
+                  (setq this-match (text-property-search-backward
+                                    'field 'prompt t)))
+        (setq match this-match
+              n (1+ n)))
+      (when match
+        (goto-char (prop-match-end match))))))
 
 (defun eshell-previous-prompt (n)
-  "Move to end of Nth previous prompt in the buffer.
-See `eshell-prompt-regexp'."
+  "Move to end of Nth previous prompt in the buffer."
   (interactive "p")
-  (eshell-next-prompt (- (1+ n))))
+  (eshell-next-prompt (- n)))
 
 (defun eshell-skip-prompt ()
   "Skip past the text matching regexp `eshell-prompt-regexp'.
 If this takes us past the end of the current line, don't skip at all."
+  (declare (obsolete nil "30.1"))
   (let ((eol (line-end-position)))
     (if (and (looking-at eshell-prompt-regexp)
 	     (<= (match-end 0) eol))
 	(goto-char (match-end 0)))))
+
+(defun eshell-bol-ignoring-prompt (arg)
+  "Move point to the beginning of the current line, past the prompt (if any).
+With argument ARG not nil or 1, move forward ARG - 1 lines
+first (see `move-beginning-of-line' for more information)."
+  (interactive "^p")
+  (let ((inhibit-field-text-motion t))
+    (move-beginning-of-line arg)))
 
 (provide 'em-prompt)
 

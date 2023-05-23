@@ -1,11 +1,11 @@
-;;; erc-spelling.el --- use flyspell in ERC
+;;; erc-spelling.el --- use flyspell in ERC  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2005-2017 Free Software Foundation, Inc.
+;; Copyright (C) 2005-2023 Free Software Foundation, Inc.
 
 ;; Author: Jorgen Schaefer <forcer@forcix.cx>
-;; Maintainer: emacs-devel@gnu.org
-;; Keywords: irc
-;; URL: http://www.emacswiki.org/cgi-bin/wiki.pl?ErcSpelling
+;; Maintainer: Amin Bandali <bandali@gnu.org>, F. Jason Park <jp@neverwas.me>
+;; Keywords: comm, irc
+;; URL: https://www.emacswiki.org/emacs/ErcSpelling
 
 ;; This file is part of GNU Emacs.
 
@@ -20,11 +20,11 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
-;; This is an ERC module to enable flyspell mode in ERC buffers. This
+;; This is an ERC module to enable flyspell mode in ERC buffers.  This
 ;; ensures correct behavior of flyspell, and even sets up a
 ;; channel-local dictionary if so required.
 
@@ -33,15 +33,16 @@
 (require 'erc)
 (require 'flyspell)
 
-;;;###autoload (autoload 'erc-spelling-mode "erc-spelling" nil t)
+;;;###autoload(autoload 'erc-spelling-mode "erc-spelling" nil t)
 (define-erc-module spelling nil
   "Enable flyspell mode in ERC buffers."
   ;; Use erc-connect-pre-hook instead of erc-mode-hook as pre-hook is
   ;; called AFTER the server buffer is initialized.
-  ((add-hook 'erc-connect-pre-hook 'erc-spelling-init)
-   (dolist (buffer (erc-buffer-list))
-     (erc-spelling-init buffer)))
-  ((remove-hook 'erc-connect-pre-hook 'erc-spelling-init)
+  ((add-hook 'erc-connect-pre-hook #'erc-spelling-init)
+   (unless erc--updating-modules-p
+     (erc-with-all-buffers-of-server nil nil
+       (erc-spelling-init (current-buffer)))))
+  ((remove-hook 'erc-connect-pre-hook #'erc-spelling-init)
    (dolist (buffer (erc-buffer-list))
      (with-current-buffer buffer (flyspell-mode 0)))))
 
@@ -104,8 +105,12 @@ The cadr is the beginning and the caddr is the end."
 
 (put 'erc-mode
      'flyspell-mode-predicate
-     'erc-spelling-flyspell-verify)
+     #'erc-spelling-flyspell-verify)
 
 (provide 'erc-spelling)
 
 ;;; erc-spelling.el ends here
+
+;; Local Variables:
+;; generated-autoload-file: "erc-loaddefs.el"
+;; End:

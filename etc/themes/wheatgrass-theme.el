@@ -1,6 +1,6 @@
-;;; wheatgrass-theme.el --- custom theme for faces
+;;; wheatgrass-theme.el --- custom theme for faces  -*- lexical-binding:t -*-
 
-;; Copyright (C) 2010-2017 Free Software Foundation, Inc.
+;; Copyright (C) 2010-2023 Free Software Foundation, Inc.
 
 ;; This file is part of GNU Emacs.
 
@@ -15,15 +15,18 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
 
 ;;; Code:
 
+;;;###theme-autoload
 (deftheme wheatgrass
   "High-contrast green/blue/brown faces on a black background.
 Basic, Font Lock, Isearch, Gnus, and Message faces are included.
 The default face foreground is wheat, with other faces in shades
-of green, brown, and blue.")
+of green, brown, and blue."
+  :background-mode 'dark
+  :kind 'color-scheme)
 
 (let ((class '((class color) (min-colors 89))))
   (custom-theme-set-faces
@@ -37,6 +40,7 @@ of green, brown, and blue.")
    `(compilation-mode-line-fail ((,class (:foreground "dark green"))))
    `(compilation-mode-line-run  ((,class (:foreground "dark goldenrod"))))
    `(compilation-mode-line-exit ((,class (:foreground "SpringGreen4"))))
+   `(compilation-info ((,class (:foreground "ForestGreen"))))
    ;; Highlighting faces
    `(highlight ((,class (:foreground "white" :background "dark green"))))
    `(region ((,class (:foreground "white" :background "dark green"))))
@@ -68,12 +72,19 @@ of green, brown, and blue.")
    `(message-header-subject ((,class (:foreground "pale turquoise"))))
    `(message-header-to ((,class (:foreground "pale green"))))
    `(message-cited-text ((,class (:foreground "SpringGreen3"))))
-   `(message-separator ((,class (:foreground "deep sky blue"))))))
+   `(message-separator ((,class (:foreground "deep sky blue"))))
+   ;; Realgud faces
+   `(realgud-overlay-arrow1        ((,class (:foreground "SpringGreen3"))))
+   `(realgud-overlay-arrow2        ((,class (:foreground "white"))))
+   `(realgud-overlay-arrow3        ((,class (:foreground "wheat"))))
+   `(realgud-bp-enabled-face       ((,class (:inherit error))))
+   `(realgud-bp-disabled-face      ((,class (:foreground "dark slate gray"))))
+   `(realgud-bp-line-enabled-face  ((,class (:underline "SpringGreen3"))))
+   `(realgud-bp-line-disabled-face ((,class (:underline "salmon"))))
+   `(realgud-file-name             ((,class (:foreground "dark khaki"))))
+   `(realgud-line-number           ((,class (:foreground "dark cyan"))))
+   `(realgud-backtrace-number      ((,class (:foreground "dark cyan" :weight bold))))))
 
 (provide-theme 'wheatgrass)
-
-;; Local Variables:
-;; no-byte-compile: t
-;; End:
 
 ;;; wheatgrass-theme.el ends here
