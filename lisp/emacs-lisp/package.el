@@ -901,8 +901,7 @@ correspond to previously loaded files."
         (when reload
           (package--reload-previously-loaded pkg-desc))
         (with-demoted-errors "Error loading autoloads: %s"
-          (load (package--autoloads-file-name pkg-desc) nil t))
-        (add-to-list 'load-path (directory-file-name pkg-dir)))
+          (load (package--autoloads-file-name pkg-desc) nil t)))
       ;; Add info node.
       (when (file-exists-p (expand-file-name "dir" pkg-dir))
         ;; FIXME: not the friendliest, but simple.
@@ -1107,8 +1106,12 @@ untar into a directory named DIR; otherwise, signal an error."
         ;; Add the directory that will contain the autoload file to
         ;; the load path.  We don't hard-code `pkg-dir', to avoid
         ;; issues if the package directory is moved around.
-        (or (and load-file-name (file-name-directory load-file-name))
-            (car load-path)))))
+        ;; `loaddefs-generate' has code to do this for us, but it's
+        ;; not currently exposed.  (Bug#63625)
+        (or (and load-file-name
+                 (directory-file-name
+                  (file-name-directory load-file-name)))
+             (car load-path)))))
     (let ((buf (find-buffer-visiting output-file)))
       (when buf (kill-buffer buf)))
     auto-name))
@@ -1196,7 +1199,7 @@ boundaries."
     ;; the earliest in version 31.1.  The idea is to phase out the
     ;; requirement for a "footer line" without unduly impacting users
     ;; on earlier Emacs versions.  See Bug#26490 for more details.
-    (unless (search-forward (concat ";;; " file-name ".el ends here") nil t)
+    (unless (search-forward (concat ";;; " file-name ".el ends here") nil 'move)
       (lwarn '(package package-format) :warning
              "Package lacks a terminating comment"))
     ;; Try to include a trailing newline.
@@ -3314,6 +3317,18 @@ Values can be interactively added to this list by typing
   :version "25.1"
   :type '(repeat (regexp :tag "Hide packages with name matching")))
 
+(defcustom package-menu-use-current-if-no-marks t
+  "Whether \\<package-menu-mode-map>\\[package-menu-execute] in package menu operates on current package if none are marked.
+
+If non-nil, and no packages are marked for installation or
+deletion, \\<package-menu-mode-map>\\[package-menu-execute] will operate on the current package at point,
+see `package-menu-execute' for details.
+The default is t.  Set to nil to get back the original behavior
+of having `package-menu-execute' signal an error when no packages
+are marked for installation or deletion."
+  :version "29.1"
+  :type 'boolean)
+
 (defun package-menu--refresh (&optional packages keywords)
   "Re-populate the `tabulated-list-entries'.
 PACKAGES should be nil or t, which means to display all known packages.
@@ -3757,8 +3772,8 @@ object corresponding to the newer version."
         (and avail-pkg
              (version-list-< (package-desc-priority-version pkg-desc)
                              (package-desc-priority-version avail-pkg))
-             (xor (not package-install-upgrade-built-in)
-                  (package--active-built-in-p pkg-desc))
+             (or (not (package--active-built-in-p pkg-desc))
+                 package-install-upgrade-built-in)
              (push (cons name avail-pkg) upgrades))))
     upgrades))
 
@@ -3943,7 +3958,8 @@ invocations."
     ;; Nothing marked.
     (unless (or delete-list install-list)
       ;; Not on a package line.
-      (unless (tabulated-list-get-id)
+      (unless (and (tabulated-list-get-id)
+                   package-menu-use-current-if-no-marks)
         (user-error "No operations specified"))
       (let* ((id (tabulated-list-get-id))
              (status (package-menu-get-status)))

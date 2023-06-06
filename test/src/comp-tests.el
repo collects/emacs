@@ -305,7 +305,8 @@ Check that the resulting binaries do not differ."
               (lambda () (throw 'foo 3)))
              3))
   (should (= (catch 'foo
-               (comp-tests-throw-f 3)))))
+               (comp-tests-throw-f 3))
+             3)))
 
 (comp-deftest gc ()
   "Try to do some longer computation to let the GC kick in."
@@ -875,6 +876,8 @@ Return a list of results."
                    ret-type))))
 
 (cl-eval-when (compile eval load)
+  (cl-defstruct comp-foo a b)
+  (cl-defstruct (comp-bar (:include comp-foo)) c)
   (defconst comp-tests-type-spec-tests
     ;; Why we quote everything here, you ask?  So that values of
     ;; `most-positive-fixnum' and `most-negative-fixnum', which can be
@@ -1404,7 +1407,39 @@ Return a list of results."
          (if (eq x 0)
 	     (error "")
 	   (1+ x)))
-       'number)))
+       'number)
+
+      ;; 75
+      ((defun comp-tests-ret-type-spec-f ()
+         (make-comp-foo))
+       'comp-foo)
+
+      ;; 76
+      ((defun comp-tests-ret-type-spec-f ()
+         (make-comp-bar))
+       'comp-bar)
+
+      ;; 77
+      ((defun comp-tests-ret-type-spec-f (x)
+          (setf (comp-foo-a x) 2)
+          x)
+       'comp-foo)
+
+      ;; 78
+      ((defun comp-tests-ret-type-spec-f (x)
+          (if x
+              (if (> x 11)
+	          x
+	        (make-comp-foo))
+            (make-comp-bar)))
+       '(or comp-foo float (integer 12 *)))
+
+      ;; 79
+      ((defun comp-tests-ret-type-spec-f (x)
+         (if (comp-foo-p x)
+             x
+           (error "")))
+       'comp-foo)))
 
   (defun comp-tests-define-type-spec-test (number x)
     `(comp-deftest ,(intern (format "ret-type-spec-%d" number)) ()
